@@ -3,7 +3,8 @@
 	Copyright: 2021
 	Author: Daniel R. Collins
 	Date: 04/08/21 00:05
-	Description: Check approved style for KCC CS assignment submissions.
+	Description: Check approved style for student C++ assignment submissions.
+		Broadly aligned with Gaddis C++ textbook styling.
 */
 #include <iostream>
 #include <vector>
