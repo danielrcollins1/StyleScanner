@@ -60,6 +60,8 @@ class StyleChecker {
 		bool isSpacedOperator(string s);
 		bool isStartParen(string s);
 		bool isFunctionHeader (string s, string &name);
+		bool stringStartsWith(string s, string t);
+		bool stringEndsWith(string s, string t);
 
 		// Readability items
 		void checkLineLength();
@@ -217,6 +219,33 @@ bool StyleChecker::isBlank(int line) {
 	return isBlank(fileLines[line]);
 }
 
+// Does string s start with string t?
+bool StyleChecker::stringStartsWith(string s, string t) {
+	if (s.length() >= t.length()) {
+		for (int i = 0; i < t.length(); i++) {
+			if (s[i] != t[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+// Does string s end with string t?
+bool StyleChecker::stringEndsWith(string s, string t) {
+	if (s.length() >= t.length()) {
+		int offset = s.length() - t.length();
+		for (int i = 0; i < t.length(); i++) {
+			if (s[i + offset] != t[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 // Find where the comment lines are
 //    Assumes comments are full lines (no end-line comments, etc.)
 //    Records lines as 0: no comment, 1: C-style, 2: C++-style
@@ -228,18 +257,18 @@ void StyleChecker::scanCommentLines() {
 		string lastToken = getLastToken(fileLines[i]);
 
 		// Check C-style comment
-		if (firstToken == C_COMMENT_START) {
+		if (stringStartsWith(firstToken, C_COMMENT_START)) {
 			inCstyleComment = true;
 		}
 		if (inCstyleComment) {
 			commentLines[i] = 1;
 		}
-		if (lastToken == C_COMMENT_END) {
+		if (stringEndsWith(lastToken, C_COMMENT_END)) {
 			inCstyleComment = false;
 		}
 
 		// Check C++-style comment
-		if (firstToken == DOUBLE_SLASH) {
+		if (stringStartsWith(firstToken, DOUBLE_SLASH)) {
 			commentLines[i] = 2;
 		}
 	}
@@ -381,7 +410,7 @@ void StyleChecker::checkHeaderFormat() {
 	if (currLine >= 0) {
 		for (string headPrefix: HEADER) {
 			if (currLine >= fileLines.size()
-				|| fileLines[currLine].compare(0, headPrefix.length(), headPrefix))
+				|| !stringStartsWith(fileLines[currLine], headPrefix))
 			{
 				errorLines.push_back(currLine);
 			}
@@ -657,9 +686,9 @@ void StyleChecker::checkPunctuationSpacing() {
 }
 
 // Get next token from a line
+//   Splits on spaces, identifiers, numbers, and punctuation.
+//   Simplistic: Gets blocks of punctuation, glues grouping symbols, etc.
 //   Starts at pos; updates pos to after found token.
-//   This is fairly rudimentary:
-//   Returns blocks of punctuation, glues grouping symbols, etc.
 string StyleChecker::getNextToken(string s, int &pos) {
 
 	// Eat spaces
