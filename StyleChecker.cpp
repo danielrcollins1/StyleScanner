@@ -38,6 +38,7 @@ class StyleChecker {
 		bool isBlank(int line);
 		bool isBlank(string line);
 		bool isPunctuation(char c);
+		bool isPunctuationChaser(char c);
 		bool isMidBlockComment(int line);
 		bool isLineLabel(string line);
 		bool isLineStartCloseBrace(string line);
@@ -655,11 +656,25 @@ void StyleChecker::checkEndlineRunonComments() {
 }
 
 // Is this a punctuation character?
+//   Can't do colons, b/c of time, scope-resolution operator.
 bool StyleChecker::isPunctuation(char c) {
 	const char PUNCT[] = {COMMA, SEMICOLON, QUESTION_MARK};
 	int numPunct = sizeof(PUNCT) / sizeof(*PUNCT);
 	for (char punct: PUNCT) {
 		if (c == punct) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// Is this an acceptable post-punctuation character?
+//   Quotes or escapes may follow in a string literal.
+bool StyleChecker::isPunctuationChaser(char c) {
+	const char CHASERS[] = {' ', '\n', '\"', '\\'};
+	int numChasers = sizeof(CHASERS) / sizeof(*CHASERS);
+	for (char chaser: CHASERS) {
+		if (c == chaser) {
 			return true;
 		}
 	}
@@ -674,7 +689,8 @@ void StyleChecker::checkPunctuationSpacing() {
 		for (int j = 0; j < line.length(); j++) {
 			if (isPunctuation(line[j])) {
 				if (((j > 1 && isspace(line[j - 1]))
-					|| (j < line.length() - 1 && !isspace(line[j + 1]))))
+					|| (j < line.length() - 1
+					&& !isPunctuationChaser(line[j + 1]))))
 				{
 					errorLines.push_back(i);
 					break;
