@@ -283,7 +283,8 @@ bool StyleChecker::isLineStartCloseBrace(string line) {
 
 // Does this line start with a label of interest?
 bool StyleChecker::isLineLabel(string line) {
-	const string LABELS[] = {"case", "public", "private", "protected"};
+	const string LABELS[] = {"case", "default",
+		"public", "private", "protected"};
 	string firstToken = getFirstToken(line);
 	for (string label: LABELS) {
 		if (firstToken == label) {
@@ -602,8 +603,9 @@ void StyleChecker::checkTooManyComments() {
 //   "++", "--" pre/postfix to variable
 //   "-" used for unary negation (start number)
 //   "*" used for pointer operator
+//   "/" used in units (e.g., ft/sec)
 bool StyleChecker::isSpacedOperator(string s) {
-	const string SPACE_OPS[] = {"+", "/", "%", "<<", ">>", "<=", ">=",
+	const string SPACE_OPS[] = {"+", "%", "<<", ">>", "<=", ">=",
 		"==", "!=", "&&", "||", "=", "+=", "-=", "*=", "/="};
 	for (string op: SPACE_OPS) {
 		if (s == op) {
@@ -657,6 +659,7 @@ void StyleChecker::checkEndlineRunonComments() {
 
 // Is this a punctuation character?
 //   Can't do colons, b/c of time, scope-resolution operator.
+//   Commas in big numbers problematic (but retain check for now).
 bool StyleChecker::isPunctuation(char c) {
 	const char PUNCT[] = {COMMA, SEMICOLON, QUESTION_MARK};
 	int numPunct = sizeof(PUNCT) / sizeof(*PUNCT);
