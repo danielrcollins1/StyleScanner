@@ -726,7 +726,7 @@ bool StyleChecker::isPunctuation(char c) {
 // Is this an acceptable post-punctuation character?
 //   Quotes or escapes may follow in a string literal.
 bool StyleChecker::isPunctuationChaser(char c) {
-	const char CHASERS[] = {' ', '\n', '\"', '\\'};
+	const char CHASERS[] = {' ', '\n', '\t', '\"', '\\'};
 	for (char chaser: CHASERS) {
 		if (c == chaser) {
 			return true;
@@ -1063,7 +1063,7 @@ void StyleChecker::checkStartSpaceComments() {
 // Check for overly long functions.
 void StyleChecker::checkFunctionLength() {
 	if (doFunctionLengthCheck) {
-		const int LONG_FUNC = 20;
+		const int LONG_FUNC = 25;
 		vector<int> errorLines;
 		for (int i = 0; i < fileLines.size(); i++) {
 			if (isFunctionHeader(fileLines[i])) {
