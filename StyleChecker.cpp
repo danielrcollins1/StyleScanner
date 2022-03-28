@@ -907,7 +907,7 @@ void StyleChecker::checkVariableNames() {
 		if (isType(type)) {
 			string name = getNextToken(line, pos);
 			if (name == "*") {
-				string name = getNextToken(line, pos);
+				name = getNextToken(line, pos);
 			}
 			string nextSymbol = getNextToken(line, pos);
 			if (!isStartParen(nextSymbol) && nextSymbol != "::") {
