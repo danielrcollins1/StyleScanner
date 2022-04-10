@@ -38,6 +38,7 @@ class StyleChecker {
 		bool isIndentTabs(string line);
 		bool isBlank(int line);
 		bool isBlank(string line);
+		bool isCommentLine(int line);
 		bool isPunctuation(char c);
 		bool isPunctuationChaser(char c);
 		bool isMidBlockComment(int line);
@@ -322,6 +323,12 @@ void StyleChecker::scanCommentLines() {
 	}
 }
 
+// Is the line a (full-line) comment?
+bool StyleChecker::isCommentLine(int line) {
+	assert(0 <= line && line < fileLines.size());
+	return (bool) commentLines[line];
+}
+
 // Does this line start with an opening brace?
 bool StyleChecker::isLineStartOpenBrace(string line) {
 	int firstPos = getFirstNonspacePos(line);
@@ -602,7 +609,7 @@ void StyleChecker::checkBlanksBeforeComments() {
 
 // Check for no comments in long stretch of statements
 void StyleChecker::checkTooFewComments() {
-	const int LONG_STRETCH = 24;
+	const int LONG_STRETCH = 25;
 	vector<int> errorLines;
 	for (int i = 0; i < fileLines.size(); i++) {
 		if (commentLines[i]) {
@@ -672,7 +679,7 @@ bool StyleChecker::isSpacedOperator(string s) {
 void StyleChecker::checkSpacedOperators() {
 	vector<int> errorLines;
 	for (int i = 0; i < fileLines.size(); i++) {
-		if (!commentLines[i]) {
+		if (!isCommentLine(i)) {
 			int pos = 0;
 			string line = fileLines[i];
 			string token = getNextToken(line, pos);
@@ -700,7 +707,7 @@ void StyleChecker::checkSpacedOperators() {
 void StyleChecker::checkEndlineRunonComments() {
 	vector<int> errorLines;
 	for (int i = 1; i < fileLines.size(); i++) {
-		if (!commentLines[i]
+		if (!isCommentLine(i)
 			&& fileLines[i].find(C_COMMENT_START) != string::npos
 			&& fileLines[i].find(C_COMMENT_END) == string::npos)
 		{
@@ -858,15 +865,17 @@ bool StyleChecker::isOkConstant(string s) {
 void StyleChecker::checkConstantNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < fileLines.size(); i++) {
-		int pos = 0;
-		string line = fileLines[i];
-		string prefix = getNextToken(line, pos);
-		if (prefix == "const") {
-			string type = getNextToken(line, pos);
-			if (isType(type)) {
-				string name = getNextToken(line, pos);
-				if (!isOkConstant(name)) {
-					errorLines.push_back(i);
+		if (!isCommentLine(i)) {
+			int pos = 0;
+			string line = fileLines[i];
+			string prefix = getNextToken(line, pos);
+			if (prefix == "const") {
+				string type = getNextToken(line, pos);
+				if (isType(type)) {
+					string name = getNextToken(line, pos);
+					if (!isOkConstant(name)) {
+						errorLines.push_back(i);
+					}
 				}
 			}
 		}
@@ -901,18 +910,24 @@ bool StyleChecker::isStartParen(string s) {
 void StyleChecker::checkVariableNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < fileLines.size(); i++) {
-		int pos = 0;
-		string line = fileLines[i];
-		string type = getNextToken(line, pos);
-		if (isType(type)) {
-			string name = getNextToken(line, pos);
-			if (name == "*") {
-				name = getNextToken(line, pos);
-			}
-			string nextSymbol = getNextToken(line, pos);
-			if (!isStartParen(nextSymbol) && nextSymbol != "::") {
-				if (!isOkVariable(name)) {
-					errorLines.push_back(i);
+		if (!isCommentLine(i)) {
+			int pos = 0;
+			string line = fileLines[i];
+			string type = getNextToken(line, pos);
+			if (isType(type)) {
+
+				// Get the variable name
+				string name = getNextToken(line, pos);
+				if (name == "*") {
+					name = getNextToken(line, pos);
+				}
+
+				// Check only non-function names
+				string nextSymbol = getNextToken(line, pos);
+				if (!isStartParen(nextSymbol) && nextSymbol != "::") {
+					if (!isOkVariable(name)) {
+						errorLines.push_back(i);
+					}
 				}
 			}
 		}
@@ -930,10 +945,12 @@ bool StyleChecker::isOkFunction(string s) {
 void StyleChecker::checkFunctionNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < fileLines.size(); i++) {
-		string name;
-		if (isFunctionHeader(fileLines[i], name)) {
-			if (!isOkFunction(name)) {
-				errorLines.push_back(i);
+		if (!isCommentLine(i)) {
+			string name;
+			if (isFunctionHeader(fileLines[i], name)) {
+				if (!isOkFunction(name)) {
+					errorLines.push_back(i);
+				}
 			}
 		}
 	}
@@ -988,13 +1005,15 @@ bool StyleChecker::isOkStructure(string s) {
 void StyleChecker::checkStructureNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < fileLines.size(); i++) {
-		int pos = 0;
-		string line = fileLines[i];
-		string prefix = getNextToken(line, pos);
-		if (prefix == "struct") {
-			string name = getNextToken(line, pos);
-			if (!isOkStructure(name)) {
-				errorLines.push_back(i);
+		if (!isCommentLine(i)) {
+			int pos = 0;
+			string line = fileLines[i];
+			string prefix = getNextToken(line, pos);
+			if (prefix == "struct") {
+				string name = getNextToken(line, pos);
+				if (!isOkStructure(name)) {
+					errorLines.push_back(i);
+				}
 			}
 		}
 	}
@@ -1011,13 +1030,15 @@ bool StyleChecker::isOkClass(string s) {
 void StyleChecker::checkClassNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < fileLines.size(); i++) {
-		int pos = 0;
-		string line = fileLines[i];
-		string prefix = getNextToken(line, pos);
-		if (prefix == "class") {
-			string name = getNextToken(line, pos);
-			if (!isOkClass(name)) {
-				errorLines.push_back(i);
+		if (!isCommentLine(i)) {
+			int pos = 0;
+			string line = fileLines[i];
+			string prefix = getNextToken(line, pos);
+			if (prefix == "class") {
+				string name = getNextToken(line, pos);
+				if (!isOkClass(name)) {
+					errorLines.push_back(i);
+				}
 			}
 		}
 	}
