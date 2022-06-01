@@ -65,6 +65,7 @@ class StyleChecker {
 		bool isStartParen(string s);
 		bool isFunctionHeader (string s);
 		bool isFunctionHeader (string s, string &name);
+		bool isClassHeader (string s);
 		bool stringStartsWith(string s, string t);
 		bool stringEndsWith(string s, string t);
 
@@ -168,26 +169,26 @@ void StyleChecker::checkErrors() {
 	checkLineLength();
 	checkIndentLevels();
 	checkTabUsage();
-	checkVariableNames();
-	checkConstantNames();
-	checkFunctionNames();
-	checkStructureNames();
 	checkClassNames();
+	checkStructureNames();
+	checkFunctionNames();
+	checkConstantNames();
+	checkVariableNames();
 	checkExtraneousBlanks();
 	checkPunctuationSpacing();
 	checkSpacedOperators();
 
 	// Documentation items
 	cout << "\n# Documentation #\n";
-	checkAnyComments();
-	checkHeaderStart();
-	checkHeaderFormat();
-	checkBlanksBeforeComments();
-	checkEndLineComments();
-	checkEndlineRunonComments();
-	checkTooFewComments();
-	checkTooManyComments();
-	checkStartSpaceComments();
+//	checkAnyComments();
+//	checkHeaderStart();
+//	checkHeaderFormat();
+//	checkBlanksBeforeComments();
+//	checkEndLineComments();
+//	checkEndlineRunonComments();
+//	checkTooFewComments();
+//	checkTooManyComments();
+//	checkStartSpaceComments();
 }
 
 // Get first file that matches argument (Windows specific)
@@ -360,6 +361,7 @@ bool StyleChecker::isLineLabel(string line) {
 void StyleChecker::scanScopeLevels() {
 	scopeLevels.resize(fileLines.size());
 	int scopeLevel = 0;
+	int labelLevel = -1;
 	bool inLabel = false;
 	for (int i = 0; i < fileLines.size(); i++) {
 		if (commentLines[i]) {
@@ -372,7 +374,7 @@ void StyleChecker::scanScopeLevels() {
 			// Decrement for start closing brace
 			if (isLineStartCloseBrace(line)) {
 				scopeLevel--;
-				if (inLabel) {
+				if (inLabel && scopeLevel == labelLevel) {
 					scopeLevel--;
 					inLabel = false;
 				}
@@ -388,8 +390,9 @@ void StyleChecker::scanScopeLevels() {
 
 			// Increment for a label
 			if (isLineLabel(line)) {
-				scopeLevel++;
 				inLabel = true;
+				labelLevel = scopeLevel;
+				scopeLevel++;
 			}
 
 			// Scan rest of line for more braces to adjust
@@ -549,7 +552,7 @@ bool StyleChecker::isRunOnLine(int line) {
 	return false;
 }
 
-// Is this line at an accept indent level?
+// Is this line at an acceptable indent level?
 bool StyleChecker::isOkayIndentLevel(int line) {
 
 	// Ignore some cases
@@ -1045,17 +1048,24 @@ void StyleChecker::checkClassNames() {
 	printErrors("Classes should start caps camel-case", errorLines);
 }
 
+// Is this a class header line?
+bool StyleChecker::isClassHeader (string s) {
+	return getFirstToken(s) == "class";
+}
+
 // Check extraneous blank lines
 //    Blank lines should only occur:
-//    before comment, label, or function header
+//    before comment, label, function, or class header
 void StyleChecker::checkExtraneousBlanks() {
 	vector<int> errorLines;
-	for (int i = 0; i < fileLines.size() - 1; i++) {
+	for (int i = 0; i < (int) fileLines.size() - 2; i++) {
 		if (isBlank(i)) {
 			int next = i + 1;
+			string nextLine = fileLines[next];
 			if (!commentLines[next]
-				&& !isLineLabel(fileLines[next])
-				&& !isFunctionHeader(fileLines[next]))
+				&& !isLineLabel(nextLine)
+				&& !isFunctionHeader(nextLine)
+				&& !isClassHeader(nextLine))
 			{
 				errorLines.push_back(i);
 			}
@@ -1088,18 +1098,19 @@ void StyleChecker::checkFunctionLength() {
 		vector<int> errorLines;
 		for (int i = 0; i < fileLines.size(); i++) {
 			if (isFunctionHeader(fileLines[i])) {
-				int start = i++;
+				int startScope = scopeLevels[i];
+				int startScan = i++;
 
 				// Search for end of function
 				while (i < fileLines.size() &&
 					(isLineStartOpenBrace(fileLines[i])
-					|| scopeLevels[i] > 0))
+					|| scopeLevels[i] > startScope))
 				{
 					i++;
 				}
-				int funcLength = i - start;
+				int funcLength = i - startScan;
 				if (funcLength > LONG_FUNC) {
-					errorLines.push_back(start);
+					errorLines.push_back(startScan);
 				}
 			}
 		}
