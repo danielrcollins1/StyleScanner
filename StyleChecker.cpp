@@ -180,15 +180,15 @@ void StyleChecker::checkErrors() {
 
 	// Documentation items
 	cout << "\n# Documentation #\n";
-//	checkAnyComments();
-//	checkHeaderStart();
-//	checkHeaderFormat();
-//	checkBlanksBeforeComments();
-//	checkEndLineComments();
-//	checkEndlineRunonComments();
-//	checkTooFewComments();
-//	checkTooManyComments();
-//	checkStartSpaceComments();
+	checkAnyComments();
+	checkHeaderStart();
+	checkHeaderFormat();
+	checkBlanksBeforeComments();
+	checkEndLineComments();
+	checkEndlineRunonComments();
+	checkTooFewComments();
+	checkTooManyComments();
+	checkStartSpaceComments();
 }
 
 // Get first file that matches argument (Windows specific)
