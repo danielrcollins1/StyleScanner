@@ -29,7 +29,6 @@ class StyleChecker {
 	protected:
 
 		// Helper functions
-		string getFirstFile(string fileCode);
 		void printError(string error);
 		void printErrors(string error, vector<int> lines);
 		int getFirstCommentLine();
@@ -191,26 +190,11 @@ void StyleChecker::checkErrors() {
 	checkStartSpaceComments();
 }
 
-// Get first file that matches argument (Windows specific)
-//   From: https://stackoverflow.com/questions/612097
-string StyleChecker::getFirstFile(string fileCode) {
-	WIN32_FIND_DATA FindFileData;
-	HANDLE hFind = FindFirstFile(fileCode.c_str(), &FindFileData);
-	if (hFind == INVALID_HANDLE_VALUE) {
-		return "";
-	}
-	else {
-		FindClose(hFind);
-		return FindFileData.cFileName;
-	}
-}
-
 // Read a code file
 bool StyleChecker::readFile() {
 
 	// Open the file
-	string firstFile = getFirstFile(fileName);
-	ifstream inFile(firstFile);
+	ifstream inFile(fileName);
 	if (!inFile) {
 		cerr << "Error: File not found.\n";
 		return false;
@@ -403,7 +387,7 @@ void StyleChecker::scanScopeLevels() {
 						case LEFT_BRACE: scopeLevel++; break;
 						case RIGHT_BRACE: if (i > firstPos) {
 								scopeLevel--; break;
-						}
+							}
 					}
 				}
 			}
