@@ -1,10 +1,11 @@
 /*
-	Name: StyleChecker
+	Name: StyleScanner
 	Copyright: 2021
 	Author: Daniel R. Collins
 	Date: 04/08/21 00:05
-	Description: Check approved style for student C++ assignment submissions.
+	Description: Scans approved style for student C++ assignment submissions.
 		Broadly aligned with Gaddis C++ textbook styling.
+		Also expect Dev-C++ style comment header.
 */
 #include <iostream>
 #include <vector>
