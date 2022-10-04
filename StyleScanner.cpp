@@ -1112,8 +1112,9 @@ int main(int argc, char** argv) {
 		checker.printUsage();
 	}
 	else {
-		checker.readFile();
-		checker.checkErrors();
+		if (checker.readFile()) {
+			checker.checkErrors();
+		}
 	}
 	return 0;
 }
