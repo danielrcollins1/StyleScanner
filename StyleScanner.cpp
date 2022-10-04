@@ -906,7 +906,7 @@ void StyleChecker::checkVariableNames() {
 
 				// Get the variable name
 				string name = getNextToken(line, pos);
-				if (name == "*") {
+				while (name == "*") {
 					name = getNextToken(line, pos);
 				}
 
@@ -958,8 +958,8 @@ bool StyleChecker::isFunctionHeader (string s, string &name) {
 	string type = getNextToken(s, pos);
 	if (isType(type)) {
 		name = getNextToken(s, pos);
-		if (name == "*") {
-			string name = getNextToken(s, pos);
+		while (name == "*") {
+			name = getNextToken(s, pos);
 		}
 		string nextSymbol = getNextToken(s, pos);
 		if (isStartParen(nextSymbol)) {
