@@ -12,7 +12,6 @@
 #include <string>
 #include <fstream>
 #include <cassert>
-#include <windows.h>
 using namespace std;
 
 // StyleChecker class
