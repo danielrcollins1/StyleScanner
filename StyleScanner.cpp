@@ -209,7 +209,7 @@ bool StyleScanner::readFile() {
 
 	// Read the file
 	string nextLine;
-	while (inFile) {
+	while (!inFile.eof()) {
 		getline(inFile, nextLine);
 		fileLines.push_back(nextLine);
 	}
