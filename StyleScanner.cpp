@@ -14,8 +14,8 @@
 #include <cassert>
 using namespace std;
 
-// StyleChecker class
-class StyleChecker {
+// StyleScanner class
+class StyleScanner {
 	public:
 		void printBanner();
 		void printUsage();
@@ -124,21 +124,21 @@ const char DOUBLE_SLASH[] = {'/', '/', '\0'};
 const char START_BLOCK[] = {LEFT_BRACE};
 
 // Print program banner
-void StyleChecker::printBanner() {
-	cout << "StyleChecker\n";
+void StyleScanner::printBanner() {
+	cout << "StyleScanner\n";
 	cout << "------------\n";
 }
 
 // Print program usage
-void StyleChecker::printUsage() {
-	cout << "Usage: StyleChecker file [options]\n";
+void StyleScanner::printUsage() {
+	cout << "Usage: StyleScanner file [options]\n";
 	cout << "  where options include:\n";
 	cout << "\t-f suppress function length check\n";
 	cout << endl;
 }
 
 // Parse arguments
-void StyleChecker::parseArgs(int argc, char** argv) {
+void StyleScanner::parseArgs(int argc, char** argv) {
 	for (int count = 1; count < argc; count++) {
 		if (argv[count][0] == '-') {
 			switch (argv[count][1]) {
@@ -159,7 +159,7 @@ void StyleChecker::parseArgs(int argc, char** argv) {
 }
 
 // Get exit after args flag
-bool StyleChecker::getExitAfterArgs() {
+bool StyleScanner::getExitAfterArgs() {
 	return exitAfterArgs;
 }
 
@@ -167,7 +167,7 @@ bool StyleChecker::getExitAfterArgs() {
 //   Prioritize these (by what visually bugs me most)
 //   since after 4 errors per section
 //   we'll cut off the rest for student focus.
-void StyleChecker::checkErrors() {
+void StyleScanner::checkErrors() {
 
 	// Readability items
 	cout << "\n# Readability #\n";
@@ -198,7 +198,7 @@ void StyleChecker::checkErrors() {
 }
 
 // Read a code file
-bool StyleChecker::readFile() {
+bool StyleScanner::readFile() {
 
 	// Open the file
 	ifstream inFile(fileName);
@@ -222,7 +222,7 @@ bool StyleChecker::readFile() {
 }
 
 // Print the read file (for testing)
-void StyleChecker::writeFile() {
+void StyleScanner::writeFile() {
 	for (string line: fileLines) {
 		cout << line << endl;
 	}
@@ -231,25 +231,25 @@ void StyleChecker::writeFile() {
 
 // Get integer-length of a string
 //   (Silences compiler warnings on conversion.)
-int StyleChecker::getLength(const string &line) {
+int StyleScanner::getLength(const string &line) {
 	return (int) line.length();	
 }
 
 // Get integer-size of a vector of strings
 //   (Silences compiler warnings on conversion.)
-int StyleChecker::getSize(const vector<string> &vec) {
+int StyleScanner::getSize(const vector<string> &vec) {
 	return (int) vec.size();	
 }
 
 // Get integer-size of a vector of ints
 //   (Silences compiler warnings on conversion.)
-int StyleChecker::getSize(const vector<int> &vec) {
+int StyleScanner::getSize(const vector<int> &vec) {
 	return (int) vec.size();	
 }
 
 // Get first nonspace position in a string
 //   Returns -1 if none such.
-int StyleChecker::getFirstNonspacePos(string line) {
+int StyleScanner::getFirstNonspacePos(string line) {
 	for (int i = 0; i < getLength(line); i++) {
 		if (!isspace(line[i])) {
 			return i;
@@ -260,7 +260,7 @@ int StyleChecker::getFirstNonspacePos(string line) {
 
 // Get last nonspace position in a string
 //   Returns -1 if none such.
-int StyleChecker::getLastNonspacePos(string line) {
+int StyleScanner::getLastNonspacePos(string line) {
 	for (int i = getLength(line) - 1; i >= 0; i--) {
 		if (!isspace(line[i])) {
 			return i;
@@ -270,17 +270,17 @@ int StyleChecker::getLastNonspacePos(string line) {
 }
 
 // Is this line a blank (all whitespace)?
-bool StyleChecker::isBlank(string line) {
+bool StyleScanner::isBlank(string line) {
 	return getFirstNonspacePos(line) == -1;
 }
 
 // Is this line number a blank?
-bool StyleChecker::isBlank(int line) {
+bool StyleScanner::isBlank(int line) {
 	return isBlank(fileLines[line]);
 }
 
 // Does string s start with string t?
-bool StyleChecker::stringStartsWith(string s, string t) {
+bool StyleScanner::stringStartsWith(string s, string t) {
 	if (getLength(s) >= getLength(t)) {
 		for (int i = 0; i < getLength(t); i++) {
 			if (s[i] != t[i]) {
@@ -293,7 +293,7 @@ bool StyleChecker::stringStartsWith(string s, string t) {
 }
 
 // Does string s end with string t?
-bool StyleChecker::stringEndsWith(string s, string t) {
+bool StyleScanner::stringEndsWith(string s, string t) {
 	if (getLength(s) >= getLength(t)) {
 		int offset = getLength(s) - t.length();
 		for (int i = 0; i < getLength(t); i++) {
@@ -309,7 +309,7 @@ bool StyleChecker::stringEndsWith(string s, string t) {
 // Find where the comment lines are
 //    Assumes comments are full lines (no end-line comments, etc.)
 //    Records lines as 0: no comment, 1: C-style, 2: C++-style
-void StyleChecker::scanCommentLines() {
+void StyleScanner::scanCommentLines() {
 	commentLines.resize(getSize(fileLines));
 	bool inCstyleComment = false;
 	for (int i = 0; i < getSize(fileLines); i++) {
@@ -335,25 +335,25 @@ void StyleChecker::scanCommentLines() {
 }
 
 // Is the line a (full-line) comment?
-bool StyleChecker::isCommentLine(int line) {
+bool StyleScanner::isCommentLine(int line) {
 	assert(0 <= line && line < getSize(fileLines));
 	return (bool) commentLines[line];
 }
 
 // Does this line start with an opening brace?
-bool StyleChecker::isLineStartOpenBrace(string line) {
+bool StyleScanner::isLineStartOpenBrace(string line) {
 	int firstPos = getFirstNonspacePos(line);
 	return firstPos >= 0 && line[firstPos] == LEFT_BRACE;
 }
 
 // Does this line start with a closing brace?
-bool StyleChecker::isLineStartCloseBrace(string line) {
+bool StyleScanner::isLineStartCloseBrace(string line) {
 	int firstPos = getFirstNonspacePos(line);
 	return firstPos >= 0 && line[firstPos] == RIGHT_BRACE;
 }
 
 // Does this line start with a label of interest?
-bool StyleChecker::isLineLabel(string line) {
+bool StyleScanner::isLineLabel(string line) {
 	const string LABELS[] = {"case", "default",
 		"public", "private", "protected"};
 	string firstToken = getFirstToken(line);
@@ -368,7 +368,7 @@ bool StyleChecker::isLineLabel(string line) {
 // Scan for scope level at each line
 //   Increments at each brace
 //   Also counts labels as incremented scope
-void StyleChecker::scanScopeLevels() {
+void StyleScanner::scanScopeLevels() {
 	scopeLevels.resize(getSize(fileLines));
 	int scopeLevel = 0;
 	int labelLevel = -1;
@@ -422,14 +422,14 @@ void StyleChecker::scanScopeLevels() {
 }
 
 // Print basic error
-void StyleChecker::printError(string error) {
+void StyleScanner::printError(string error) {
 	cout << error << "\n";
 }
 
 // Format an error report with line numbers
 //   If lines vector is empty, then nothing is printed.
 //   Line numbers are incremented for user display.
-void StyleChecker::printErrors(string error, vector<int> lines) {
+void StyleScanner::printErrors(string error, vector<int> lines) {
 
 	// Singular error
 	if (lines.size() == 1) {
@@ -452,7 +452,7 @@ void StyleChecker::printErrors(string error, vector<int> lines) {
 
 // Get index of first comment line
 //   Returns -1 if none whatsoever
-int StyleChecker::getFirstCommentLine() {
+int StyleScanner::getFirstCommentLine() {
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (commentLines[i]) {
 			return i;
@@ -462,7 +462,7 @@ int StyleChecker::getFirstCommentLine() {
 }
 
 // Check if the file has any comment lines at all
-void StyleChecker::checkAnyComments() {
+void StyleScanner::checkAnyComments() {
 	if (getFirstCommentLine() == -1) {
 		printError("File lacks any comment lines!");
 	}
@@ -470,14 +470,14 @@ void StyleChecker::checkAnyComments() {
 
 // Check header start
 //   File should start with a comment
-void StyleChecker::checkHeaderStart() {
+void StyleScanner::checkHeaderStart() {
 	if (getFirstCommentLine() != 0) {
 		printError("Misplaced file comment header (line 1).");
 	}
 }
 
 // Check file header
-void StyleChecker::checkHeaderFormat() {
+void StyleScanner::checkHeaderFormat() {
 	vector<int> errorLines;
 	const string HEADER[] = {C_COMMENT_START, "\tName:", "\tCopyright:",
 		"\tAuthor:", "\tDate:", "\tDescription:"};
@@ -496,7 +496,7 @@ void StyleChecker::checkHeaderFormat() {
 }
 
 // Check line lengths
-void StyleChecker::checkLineLength() {
+void StyleScanner::checkLineLength() {
 	const int MAX_LENGTH = 80;
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
@@ -508,7 +508,7 @@ void StyleChecker::checkLineLength() {
 }
 
 // Is the indent in this line all tabs?
-bool StyleChecker::isIndentTabs(string line) {
+bool StyleScanner::isIndentTabs(string line) {
 	int firstChar = getFirstNonspacePos(line);
 	for (int i = 0; i < firstChar; i++) {
 		if (line[i] != '\t') {
@@ -519,7 +519,7 @@ bool StyleChecker::isIndentTabs(string line) {
 }
 
 // Check end-line comments
-void StyleChecker::checkEndLineComments() {
+void StyleScanner::checkEndLineComments() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!commentLines[i]
@@ -533,7 +533,7 @@ void StyleChecker::checkEndLineComments() {
 }
 
 // Check tab usage for indents
-void StyleChecker::checkTabUsage() {
+void StyleScanner::checkTabUsage() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!isIndentTabs(fileLines[i])) {
@@ -544,14 +544,14 @@ void StyleChecker::checkTabUsage() {
 }
 
 // Is this line in the middle of a C-style block comment?
-bool StyleChecker::isMidBlockComment(int line){
+bool StyleScanner::isMidBlockComment(int line){
 	return commentLines[line] == 1
 		&& (line > 0 && commentLines[line - 1] == 1)
 		&& (line < getSize(commentLines) - 1 && commentLines[line + 1] == 1);
 }
 
 // Is this line a run-on statement spanning multiple lines?
-bool StyleChecker::isRunOnLine(int line) {
+bool StyleScanner::isRunOnLine(int line) {
 	if (line > 0 && !isBlank(line - 1) && !commentLines[line - 1]) {
 		string priorLine = fileLines[line - 1];
 		int lastPriorChar = getLastNonspacePos(priorLine);
@@ -563,7 +563,7 @@ bool StyleChecker::isRunOnLine(int line) {
 }
 
 // Is this line at an acceptable indent level?
-bool StyleChecker::isOkayIndentLevel(int line) {
+bool StyleScanner::isOkayIndentLevel(int line) {
 
 	// Ignore some cases
 	if (isBlank(line) || isMidBlockComment(line)
@@ -591,7 +591,7 @@ bool StyleChecker::isOkayIndentLevel(int line) {
 }
 
 // Check indent levels
-void StyleChecker::checkIndentLevels() {
+void StyleScanner::checkIndentLevels() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!isOkayIndentLevel(i)) {
@@ -602,7 +602,7 @@ void StyleChecker::checkIndentLevels() {
 }
 
 // Check blanks before comments (required)
-void StyleChecker::checkBlanksBeforeComments() {
+void StyleScanner::checkBlanksBeforeComments() {
 	vector<int> errorLines;
 	for (int i = 1; i < getSize(fileLines); i++) {
 		if (commentLines[i]) {
@@ -620,7 +620,7 @@ void StyleChecker::checkBlanksBeforeComments() {
 }
 
 // Check for no comments in long stretch of statements
-void StyleChecker::checkTooFewComments() {
+void StyleScanner::checkTooFewComments() {
 	const int LONG_STRETCH = 25;
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
@@ -636,7 +636,7 @@ void StyleChecker::checkTooFewComments() {
 }
 
 // Check that next N lines all in same scope
-bool StyleChecker::isSameScope (int startLine, int numLines) {
+bool StyleScanner::isSameScope (int startLine, int numLines) {
 	if (startLine >= 0
 		&& startLine + numLines < getSize(fileLines))
 	{
@@ -652,7 +652,7 @@ bool StyleChecker::isSameScope (int startLine, int numLines) {
 }
 
 // Check for commenting multiple single-line statements
-void StyleChecker::checkTooManyComments() {
+void StyleScanner::checkTooManyComments() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines) - 5; i++) {
 		if (commentLines[i]
@@ -676,7 +676,7 @@ void StyleChecker::checkTooManyComments() {
 //   "-" used for unary negation (start number)
 //   "*" used for pointer operator
 //   "/" used in units (e.g., ft/sec)
-bool StyleChecker::isSpacedOperator(string s) {
+bool StyleScanner::isSpacedOperator(string s) {
 	const string SPACE_OPS[] = {"+", "%", "<<", ">>", "<=", ">=",
 		"==", "!=", "&&", "||", "=", "+=", "-=", "*=", "/="};
 	for (string op: SPACE_OPS) {
@@ -688,7 +688,7 @@ bool StyleChecker::isSpacedOperator(string s) {
 }
 
 // Check spaces around operators
-void StyleChecker::checkSpacedOperators() {
+void StyleScanner::checkSpacedOperators() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!isCommentLine(i)) {
@@ -716,7 +716,7 @@ void StyleChecker::checkSpacedOperators() {
 
 // Check for end-line C-style comments that continue to next line
 //   Never seen this, but it would foil all our other comment logic.
-void StyleChecker::checkEndlineRunonComments() {
+void StyleScanner::checkEndlineRunonComments() {
 	vector<int> errorLines;
 	for (int i = 1; i < getSize(fileLines); i++) {
 		if (!isCommentLine(i)
@@ -732,7 +732,7 @@ void StyleChecker::checkEndlineRunonComments() {
 // Is this a punctuation character?
 //   Can't do colons, b/c of time, scope-resolution operator.
 //   Commas in big numbers problematic (but retain check for now).
-bool StyleChecker::isPunctuation(char c) {
+bool StyleScanner::isPunctuation(char c) {
 	const char PUNCT[] = {COMMA, SEMICOLON, QUESTION_MARK};
 	for (char punct: PUNCT) {
 		if (c == punct) {
@@ -744,7 +744,7 @@ bool StyleChecker::isPunctuation(char c) {
 
 // Is this an acceptable post-punctuation character?
 //   Quotes or escapes may follow in a string literal.
-bool StyleChecker::isPunctuationChaser(char c) {
+bool StyleScanner::isPunctuationChaser(char c) {
 	const char CHASERS[] = {' ', '\n', '\t', '\"', '\\'};
 	for (char chaser: CHASERS) {
 		if (c == chaser) {
@@ -755,7 +755,7 @@ bool StyleChecker::isPunctuationChaser(char c) {
 }
 
 // Check for spaces after punctuation, but not before
-void StyleChecker::checkPunctuationSpacing() {
+void StyleScanner::checkPunctuationSpacing() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		string line = fileLines[i];
@@ -778,7 +778,7 @@ void StyleChecker::checkPunctuationSpacing() {
 //   Splits on spaces, identifiers, numbers, and punctuation.
 //   Simplistic: Gets blocks of punctuation, glues grouping symbols, etc.
 //   Starts at pos; updates pos to after found token.
-string StyleChecker::getNextToken(string s, int &pos) {
+string StyleScanner::getNextToken(string s, int &pos) {
 
 	// Eat spaces
 	while (pos < getLength(s) && isspace(s[pos])) {
@@ -817,13 +817,13 @@ string StyleChecker::getNextToken(string s, int &pos) {
 }
 
 // Get first token on a line
-string StyleChecker::getFirstToken(string s) {
+string StyleScanner::getFirstToken(string s) {
 	int pos = 0;
 	return getNextToken(s, pos);
 }
 
 // Get last token on a line
-string StyleChecker::getLastToken(string s) {
+string StyleScanner::getLastToken(string s) {
 	int pos = 0;
 	string lastToken = "";
 	string nextToken = getNextToken(s, pos);
@@ -835,7 +835,7 @@ string StyleChecker::getLastToken(string s) {
 }
 
 // Show all tokens in file (for testing)
-void StyleChecker::showTokens() {
+void StyleScanner::showTokens() {
 	for (string line: fileLines) {
 		int pos = 0;
 		string token = getNextToken(line, pos);
@@ -849,7 +849,7 @@ void StyleChecker::showTokens() {
 }
 
 // Is this string a fundamental type?
-bool StyleChecker::isType(string s) {
+bool StyleScanner::isType(string s) {
 	const string TYPES[] = {"int", "float", "double",
 		"char", "bool", "string", "void"};
 	for (string type: TYPES) {
@@ -861,7 +861,7 @@ bool StyleChecker::isType(string s) {
 }
 
 // Is this string an acceptable constant name?
-bool StyleChecker::isOkConstant(string s) {
+bool StyleScanner::isOkConstant(string s) {
 	if (getLength(s) < 2) {
 		return false;
 	}
@@ -874,7 +874,7 @@ bool StyleChecker::isOkConstant(string s) {
 }
 
 // Check constant names
-void StyleChecker::checkConstantNames() {
+void StyleScanner::checkConstantNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!isCommentLine(i)) {
@@ -896,7 +896,7 @@ void StyleChecker::checkConstantNames() {
 }
 
 // Is this string an acceptable variable name?
-bool StyleChecker::isOkVariable(string s) {
+bool StyleScanner::isOkVariable(string s) {
 	if (getLength(s) < 2
 		|| !islower(s[0]))
 	{
@@ -913,13 +913,13 @@ bool StyleChecker::isOkVariable(string s) {
 }
 
 // Does this token start with an open parenthesis?
-bool StyleChecker::isStartParen(string s) {
+bool StyleScanner::isStartParen(string s) {
 	return getLength(s) > 0 && s[0] == '(';
 }
 
 // Check variable names
 //   Note we check only first variable declared on a line.
-void StyleChecker::checkVariableNames() {
+void StyleScanner::checkVariableNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!isCommentLine(i)) {
@@ -949,12 +949,12 @@ void StyleChecker::checkVariableNames() {
 
 // Is this string an acceptable function name?
 //   Currently same rule as for variable names.
-bool StyleChecker::isOkFunction(string s) {
+bool StyleScanner::isOkFunction(string s) {
 	return isOkVariable(s);
 }
 
 // Check function names
-void StyleChecker::checkFunctionNames() {
+void StyleScanner::checkFunctionNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!isCommentLine(i)) {
@@ -970,14 +970,14 @@ void StyleChecker::checkFunctionNames() {
 }
 
 // Is the given line a function header?
-bool StyleChecker::isFunctionHeader (string s) {
+bool StyleScanner::isFunctionHeader (string s) {
 	string dummyName;
 	return isFunctionHeader(s, dummyName);
 }
 
 // Is the given line a function header?
 //   If so, return function name in parameter.
-bool StyleChecker::isFunctionHeader (string s, string &name) {
+bool StyleScanner::isFunctionHeader (string s, string &name) {
 	int pos = 0;
 	string type = getNextToken(s, pos);
 	if (isType(type)) {
@@ -997,7 +997,7 @@ bool StyleChecker::isFunctionHeader (string s, string &name) {
 }
 
 // Is this string an acceptable structure name?
-bool StyleChecker::isOkStructure(string s) {
+bool StyleScanner::isOkStructure(string s) {
 	if (getLength(s) < 2
 		|| !isupper(s[0]))
 	{
@@ -1014,7 +1014,7 @@ bool StyleChecker::isOkStructure(string s) {
 }
 
 // Check structure names
-void StyleChecker::checkStructureNames() {
+void StyleScanner::checkStructureNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!isCommentLine(i)) {
@@ -1034,12 +1034,12 @@ void StyleChecker::checkStructureNames() {
 
 // Is this string an acceptable class name?
 //   Currently same rule as for variable names.
-bool StyleChecker::isOkClass(string s) {
+bool StyleScanner::isOkClass(string s) {
 	return isOkStructure(s);
 }
 
 // Check structure names
-void StyleChecker::checkClassNames() {
+void StyleScanner::checkClassNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!isCommentLine(i)) {
@@ -1058,14 +1058,14 @@ void StyleChecker::checkClassNames() {
 }
 
 // Is this a class header line?
-bool StyleChecker::isClassHeader (string s) {
+bool StyleScanner::isClassHeader (string s) {
 	return getFirstToken(s) == "class";
 }
 
 // Check extraneous blank lines
 //    Blank lines should only occur:
 //    before comment, label, function, or class header
-void StyleChecker::checkExtraneousBlanks() {
+void StyleScanner::checkExtraneousBlanks() {
 	vector<int> errorLines;
 	for (int i = 0; i < (int) getSize(fileLines) - 2; i++) {
 		if (isBlank(i)) {
@@ -1084,7 +1084,7 @@ void StyleChecker::checkExtraneousBlanks() {
 }
 
 // C++-style comments should have a space after slashes.
-void StyleChecker::checkStartSpaceComments() {
+void StyleScanner::checkStartSpaceComments() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		int pos = 0;
@@ -1101,7 +1101,7 @@ void StyleChecker::checkStartSpaceComments() {
 }
 
 // Check for overly long functions.
-void StyleChecker::checkFunctionLength() {
+void StyleScanner::checkFunctionLength() {
 	if (doFunctionLengthCheck) {
 		const int LONG_FUNC = 25;
 		vector<int> errorLines;
@@ -1129,7 +1129,7 @@ void StyleChecker::checkFunctionLength() {
 
 // Main test driver
 int main(int argc, char** argv) {
-	StyleChecker checker;
+	StyleScanner checker;
 	checker.printBanner();
 	checker.parseArgs(argc, argv);
 	if (checker.getExitAfterArgs()) {
