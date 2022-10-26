@@ -56,6 +56,7 @@ class StyleScanner {
 		bool isRunOnLine(int line);
 		bool isOkayIndentLevel(int line);
 		bool isSameScope (int startLine, int numLines);
+		bool isLeadInCommentHere(int line);
 
 		// Token-based helper functions
 		string getNextToken(string s, int &pos);
@@ -79,7 +80,6 @@ class StyleScanner {
 		void checkLineLength();
 		void checkTabUsage();
 		void checkIndentLevels();
-		void checkSpacesAroundOps();
 		void checkExtraneousBlanks();
 		void checkVariableNames();
 		void checkConstantNames();
@@ -100,6 +100,7 @@ class StyleScanner {
 		void checkTooManyComments();
 		void checkEndlineRunonComments();
 		void checkStartSpaceComments();
+		void checkFunctionLeadComments();
 
 	private:
 		string fileName;
@@ -134,6 +135,7 @@ void StyleScanner::printUsage() {
 	cout << "Usage: StyleScanner file [options]\n";
 	cout << "  where options include:\n";
 	cout << "\t-f suppress function length check\n";
+	cout << "\t-s accept spaces for continuation indents\n";
 	cout << endl;
 }
 
@@ -189,9 +191,10 @@ void StyleScanner::checkErrors() {
 	checkAnyComments();
 	checkHeaderStart();
 	checkHeaderFormat();
-	checkBlanksBeforeComments();
 	checkEndLineComments();
 	checkEndlineRunonComments();
+	checkFunctionLeadComments();
+	checkBlanksBeforeComments();
 	checkTooFewComments();
 	checkTooManyComments();
 	checkStartSpaceComments();
@@ -969,6 +972,31 @@ void StyleScanner::checkFunctionNames() {
 	printErrors("Functions should be camel-case name", errorLines);
 }
 
+// Is there a lead-in comment to the function here?
+bool StyleScanner::isLeadInCommentHere(int line) {
+	if (line < 2)
+		return false;
+	return (isCommentLine(line - 1)
+		|| (isBlank(line - 1) && isCommentLine(line - 2)));
+}
+
+// Check for lead-in comments before functions
+void StyleScanner::checkFunctionLeadComments() {
+	if (doFunctionLengthCheck) {
+		vector<int> errorLines;
+		for (int i = 0; i < getSize(fileLines); i++) {
+			if (!isCommentLine(i)
+				&& !(scopeLevels[i] > 0)
+				&& isFunctionHeader(fileLines[i])
+				&& !isLeadInCommentHere(i)) 
+			{
+				errorLines.push_back(i);
+			}
+		}
+		printErrors("Functions should have a lead-in comment", errorLines);
+	}
+}
+
 // Is the given line a function header?
 bool StyleScanner::isFunctionHeader (string s) {
 	string dummyName;
@@ -987,10 +1015,14 @@ bool StyleScanner::isFunctionHeader (string s, string &name) {
 		}
 		string nextSymbol = getNextToken(s, pos);
 		if (isStartParen(nextSymbol)) {
-			int lastChar = s[getLastNonspacePos(s)];
-			if (lastChar != SEMICOLON) {
-				return true;
+
+			// Avoid prototypes
+			while (pos < getLength(s)) {
+				if (s[pos] == SEMICOLON)
+					return false;
+				pos++;	
 			}
+			return true;
 		}
 	}
 	return false;
