@@ -43,7 +43,8 @@ class StyleScanner {
 		int getFirstCommentLine();
 		int getFirstNonspacePos(string line);
 		int getLastNonspacePos(string line);
-		bool isIndentTabs(string line);
+		int getStartTabCount(string line);
+		bool isIndentTabs(int line);
 		bool isBlank(int line);
 		bool isBlank(string line);
 		bool isCommentLine(int line);
@@ -135,7 +136,6 @@ void StyleScanner::printUsage() {
 	cout << "Usage: StyleScanner file [options]\n";
 	cout << "  where options include:\n";
 	cout << "\t-f suppress function length check\n";
-	cout << "\t-s accept spaces for continuation indents\n";
 	cout << endl;
 }
 
@@ -191,8 +191,8 @@ void StyleScanner::checkErrors() {
 	checkAnyComments();
 	checkHeaderStart();
 	checkHeaderFormat();
-	checkEndLineComments();
 	checkEndlineRunonComments();
+	checkEndLineComments();
 	checkFunctionLeadComments();
 	checkBlanksBeforeComments();
 	checkTooFewComments();
@@ -510,11 +510,24 @@ void StyleScanner::checkLineLength() {
 	printErrors("Line is too long", errorLines);
 }
 
-// Is the indent in this line all tabs?
-bool StyleScanner::isIndentTabs(string line) {
-	int firstChar = getFirstNonspacePos(line);
-	for (int i = 0; i < firstChar; i++) {
-		if (line[i] != '\t') {
+// How many tabs are at the start of this line?
+int StyleScanner::getStartTabCount(string line) {
+	int count = 0;
+	while (count < getLength(line) && line[count] == '\t')
+		count++;
+	return count;
+}
+
+// Is the indent in this line using tabs?
+//   For compatibility with Artistic Style
+//   (uses spaces for continuation indents),
+//   check up to first non-space or scope level
+bool StyleScanner::isIndentTabs(int line) {
+	string lineStr = fileLines[line];	
+	int checkToPos = min(scopeLevels[line], 
+		getFirstNonspacePos(lineStr));
+	for (int i = 0; i < checkToPos; i++) {
+		if (lineStr[i] != '\t') {
 			return false;
 		}
 	}
@@ -539,7 +552,7 @@ void StyleScanner::checkEndLineComments() {
 void StyleScanner::checkTabUsage() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
-		if (!isIndentTabs(fileLines[i])) {
+		if (!isIndentTabs(i)) {
 			errorLines.push_back(i);
 		}
 	}
@@ -570,21 +583,24 @@ bool StyleScanner::isOkayIndentLevel(int line) {
 
 	// Ignore some cases
 	if (isBlank(line) || isMidBlockComment(line)
-		|| !isIndentTabs(fileLines[line]))
+		|| !isIndentTabs(line))
 	{
 		return true;
 	}
 
 	// Standard indent level
-	int indentEnd = getFirstNonspacePos(fileLines[line]);
-	if (indentEnd == scopeLevels[line]) {
-		return true;
+	int numStartTabs = getStartTabCount(fileLines[line]);
+	if (numStartTabs == scopeLevels[line]) {
+		return true;	
 	}
-
+	
 	// Accept extra indent for run-on line in same scope
+	//   For Artistic Style compatibility, 
+	//   just require at least that many tabs 
+	//   (continuation could be a tab or spaces)
 	if (isRunOnLine(line)
 		&& scopeLevels[line] == scopeLevels[line - 1]
-		&& indentEnd == scopeLevels[line] + 1)
+		&& numStartTabs >= scopeLevels[line])
 	{
 		return true;
 	}
