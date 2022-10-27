@@ -48,16 +48,17 @@ class StyleScanner {
 		bool isBlank(int line);
 		bool isBlank(string line);
 		bool isCommentLine(int line);
+		bool isCommentBeforeCase(int line);
 		bool isPunctuation(char c);
 		bool isPunctuationChaser(char c);
 		bool isMidBlockComment(int line);
 		bool isLineLabel(string line);
 		bool isLineStartOpenBrace(string line);
 		bool isLineStartCloseBrace(string line);
-		bool isRunOnLine(int line);
 		bool isOkayIndentLevel(int line);
 		bool isSameScope (int startLine, int numLines);
 		bool isLeadInCommentHere(int line);
+		bool mayBeRunOnLine(int line);
 
 		// Token-based helper functions
 		string getNextToken(string s, int &pos);
@@ -343,6 +344,22 @@ bool StyleScanner::isCommentLine(int line) {
 	return (bool) commentLines[line];
 }
 
+// Is the line a comment before a case or default label?
+bool StyleScanner::isCommentBeforeCase (int line) {
+	assert(0 <= line && line < getSize(fileLines));
+	if (isCommentLine(line)) {
+		for (int cLine = line + 1; cLine < getSize(fileLines); cLine++) {
+			if (isCommentLine(cLine)) continue;
+			string firstToken = getFirstToken(fileLines[cLine]);
+			if (firstToken == "case" || firstToken == "default")
+				return true;
+			else
+				return false;
+		}
+	}
+	return false;
+}
+
 // Does this line start with an opening brace?
 bool StyleScanner::isLineStartOpenBrace(string line) {
 	int firstPos = getFirstNonspacePos(line);
@@ -384,7 +401,7 @@ void StyleScanner::scanScopeLevels() {
 			string line = fileLines[i];
 			bool lineLabel = isLineLabel(line);
 
-			// Decrement for start closing brace
+			// Decrement for closing brace
 			if (isLineStartCloseBrace(line)) {
 				scopeLevel--;
 				if (inLabel && scopeLevel == labelLevel) {
@@ -402,7 +419,7 @@ void StyleScanner::scanScopeLevels() {
 			scopeLevels[i] = scopeLevel;
 
 			// Increment for a label
-			if (isLineLabel(line)) {
+			if (lineLabel) {
 				inLabel = true;
 				labelLevel = scopeLevel;
 				scopeLevel++;
@@ -519,13 +536,17 @@ int StyleScanner::getStartTabCount(string line) {
 }
 
 // Is the indent in this line using tabs?
-//   For compatibility with Artistic Style
-//   (uses spaces for continuation indents),
-//   check up to first non-space or scope level
 bool StyleScanner::isIndentTabs(int line) {
 	string lineStr = fileLines[line];	
-	int checkToPos = min(scopeLevels[line], 
-		getFirstNonspacePos(lineStr));
+	int checkToPos = getFirstNonspacePos(lineStr);
+
+	// Artistic Style uses spaces for continuation lines;
+	// so in these cases, check no further than scope level
+	if (mayBeRunOnLine(line)) {
+		checkToPos = min(checkToPos, scopeLevels[line]);
+	}
+	
+	// Check for all-tabs here
 	for (int i = 0; i < checkToPos; i++) {
 		if (lineStr[i] != '\t') {
 			return false;
@@ -566,9 +587,11 @@ bool StyleScanner::isMidBlockComment(int line){
 		&& (line < getSize(commentLines) - 1 && commentLines[line + 1] == 1);
 }
 
-// Is this line a run-on statement spanning multiple lines?
-bool StyleScanner::isRunOnLine(int line) {
-	if (line > 0 && !isBlank(line - 1) && !commentLines[line - 1]) {
+// Is this line possibly a run-on (continuation) statement?
+bool StyleScanner::mayBeRunOnLine(int line) {
+	if (line > 0 && scopeLevels[line] == scopeLevels[line - 1]
+		&& !commentLines[line - 1] && !isBlank(line - 1))
+	{
 		string priorLine = fileLines[line - 1];
 		int lastPriorChar = getLastNonspacePos(priorLine);
 		if (priorLine[lastPriorChar] != SEMICOLON) {
@@ -588,25 +611,26 @@ bool StyleScanner::isOkayIndentLevel(int line) {
 		return true;
 	}
 
-	// Standard indent level
+	// Get scope & tab levels
+	int scopeLevel = scopeLevels[line];
 	int numStartTabs = getStartTabCount(fileLines[line]);
-	if (numStartTabs == scopeLevels[line]) {
-		return true;	
-	}
-	
-	// Accept extra indent for run-on line in same scope
-	//   For Artistic Style compatibility, 
-	//   just require at least that many tabs 
-	//   (continuation could be a tab or spaces)
-	if (isRunOnLine(line)
-		&& scopeLevels[line] == scopeLevels[line - 1]
-		&& numStartTabs >= scopeLevels[line])
-	{
-		return true;
+
+	// Comments before a case permit one less indent
+	//   (This is sketchy before the first case)
+	if (isCommentBeforeCase(line)) {
+		return numStartTabs	== scopeLevel
+			|| numStartTabs == scopeLevel - 1;
 	}
 
-	// Otherwise no
-	return false;
+	// Run-on (continuation) lines handling:
+	//   Artistic Style uses spaces for extra indents
+	//   So require at least scope level tabs
+	if (mayBeRunOnLine(line)) {
+		return numStartTabs >= scopeLevel;
+	}
+
+	// Standard indent case
+	return numStartTabs == scopeLevel;
 }
 
 // Check indent levels
