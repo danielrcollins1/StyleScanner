@@ -38,45 +38,46 @@ class StyleScanner {
 		int getSize(const vector<int> &vec);
 
 		// Helper functions
-		void printError(string error);
-		void printErrors(string error, vector<int> lines);
+		void printError(const string &error);
+		void printErrors(const string &error, const vector<int> &lines);
 		int getFirstCommentLine();
-		int getFirstNonspacePos(string line);
-		int getLastNonspacePos(string line);
-		int getStartTabCount(string line);
+		int getFirstNonspacePos(const string &line);
+		int getLastNonspacePos(const string &line);
+		int getStartTabCount(const string &line);
 		bool isIndentTabs(int line);
 		bool isBlank(int line);
-		bool isBlank(string line);
+		bool isBlank(const string &line);
 		bool isCommentLine(int line);
 		bool isCommentBeforeCase(int line);
 		bool isPunctuation(char c);
 		bool isPunctuationChaser(char c);
 		bool isMidBlockComment(int line);
-		bool isLineLabel(string line);
-		bool isLineStartOpenBrace(string line);
-		bool isLineStartCloseBrace(string line);
+		bool isLineLabel(const string &line);
+		bool isLineStartOpenBrace(const string &line);
+		bool isLineStartCloseBrace(const string &line);
+		bool isLineEndingSemicolon(const string &line);
 		bool isOkayIndentLevel(int line);
 		bool isSameScope (int startLine, int numLines);
 		bool isLeadInCommentHere(int line);
 		bool mayBeRunOnLine(int line);
 
 		// Token-based helper functions
-		string getNextToken(string s, int &pos);
-		string getFirstToken(string s);
-		string getLastToken(string s);
-		bool isType(string s);
-		bool isOkConstant(string s);
-		bool isOkVariable(string s);
-		bool isOkFunction(string s);
-		bool isOkStructure(string s);
-		bool isOkClass(string s);
-		bool isSpacedOperator(string s);
-		bool isStartParen(string s);
-		bool isFunctionHeader (string s);
-		bool isFunctionHeader (string s, string &name);
-		bool isClassHeader (string s);
-		bool stringStartsWith(string s, string t);
-		bool stringEndsWith(string s, string t);
+		string getNextToken(const string &s, int &pos);
+		string getFirstToken(const string &s);
+		string getLastToken(const string &s);
+		bool isType(const string &s);
+		bool isOkConstant(const string &s);
+		bool isOkVariable(const string &s);
+		bool isOkFunction(const string &s);
+		bool isOkStructure(const string &s);
+		bool isOkClass(const string &s);
+		bool isSpacedOperator(const string &s);
+		bool isStartParen(const string &s);
+		bool isFunctionHeader (const string &s);
+		bool isFunctionHeader (const string &s, string &name);
+		bool isClassHeader (const string &s);
+		bool stringStartsWith(const string &s, const string &t);
+		bool stringEndsWith(const string &s, const string &t);
 
 		// Readability items
 		void checkLineLength();
@@ -253,7 +254,7 @@ int StyleScanner::getSize(const vector<int> &vec) {
 
 // Get first nonspace position in a string
 //   Returns -1 if none such.
-int StyleScanner::getFirstNonspacePos(string line) {
+int StyleScanner::getFirstNonspacePos(const string &line) {
 	for (int i = 0; i < getLength(line); i++) {
 		if (!isspace(line[i])) {
 			return i;
@@ -264,7 +265,7 @@ int StyleScanner::getFirstNonspacePos(string line) {
 
 // Get last nonspace position in a string
 //   Returns -1 if none such.
-int StyleScanner::getLastNonspacePos(string line) {
+int StyleScanner::getLastNonspacePos(const string &line) {
 	for (int i = getLength(line) - 1; i >= 0; i--) {
 		if (!isspace(line[i])) {
 			return i;
@@ -274,7 +275,7 @@ int StyleScanner::getLastNonspacePos(string line) {
 }
 
 // Is this line a blank (all whitespace)?
-bool StyleScanner::isBlank(string line) {
+bool StyleScanner::isBlank(const string &line) {
 	return getFirstNonspacePos(line) == -1;
 }
 
@@ -284,7 +285,7 @@ bool StyleScanner::isBlank(int line) {
 }
 
 // Does string s start with string t?
-bool StyleScanner::stringStartsWith(string s, string t) {
+bool StyleScanner::stringStartsWith(const string &s, const string &t) {
 	if (getLength(s) >= getLength(t)) {
 		for (int i = 0; i < getLength(t); i++) {
 			if (s[i] != t[i]) {
@@ -297,7 +298,7 @@ bool StyleScanner::stringStartsWith(string s, string t) {
 }
 
 // Does string s end with string t?
-bool StyleScanner::stringEndsWith(string s, string t) {
+bool StyleScanner::stringEndsWith(const string &s, const string &t) {
 	if (getLength(s) >= getLength(t)) {
 		int offset = getLength(s) - t.length();
 		for (int i = 0; i < getLength(t); i++) {
@@ -361,19 +362,19 @@ bool StyleScanner::isCommentBeforeCase (int line) {
 }
 
 // Does this line start with an opening brace?
-bool StyleScanner::isLineStartOpenBrace(string line) {
+bool StyleScanner::isLineStartOpenBrace(const string &line) {
 	int firstPos = getFirstNonspacePos(line);
 	return firstPos >= 0 && line[firstPos] == LEFT_BRACE;
 }
 
 // Does this line start with a closing brace?
-bool StyleScanner::isLineStartCloseBrace(string line) {
+bool StyleScanner::isLineStartCloseBrace(const string &line) {
 	int firstPos = getFirstNonspacePos(line);
 	return firstPos >= 0 && line[firstPos] == RIGHT_BRACE;
 }
 
 // Does this line start with a label of interest?
-bool StyleScanner::isLineLabel(string line) {
+bool StyleScanner::isLineLabel(const string &line) {
 	const string LABELS[] = {"case", "default",
 		"public", "private", "protected"};
 	string firstToken = getFirstToken(line);
@@ -383,6 +384,12 @@ bool StyleScanner::isLineLabel(string line) {
 		}
 	}
 	return false;
+}
+
+// Does this line end with a semicolon?
+bool StyleScanner::isLineEndingSemicolon(const string &line) {
+	int lastPos = getLastNonspacePos(line);
+	return lastPos != -1 && line[lastPos] == SEMICOLON;
 }
 
 // Scan for scope level at each line
@@ -442,14 +449,14 @@ void StyleScanner::scanScopeLevels() {
 }
 
 // Print basic error
-void StyleScanner::printError(string error) {
+void StyleScanner::printError(const string &error) {
 	cout << error << "\n";
 }
 
 // Format an error report with line numbers
 //   If lines vector is empty, then nothing is printed.
 //   Line numbers are incremented for user display.
-void StyleScanner::printErrors(string error, vector<int> lines) {
+void StyleScanner::printErrors(const string &error, const vector<int> &lines) {
 
 	// Singular error
 	if (lines.size() == 1) {
@@ -528,7 +535,7 @@ void StyleScanner::checkLineLength() {
 }
 
 // How many tabs are at the start of this line?
-int StyleScanner::getStartTabCount(string line) {
+int StyleScanner::getStartTabCount(const string &line) {
 	int count = 0;
 	while (count < getLength(line) && line[count] == '\t')
 		count++;
@@ -719,7 +726,7 @@ void StyleScanner::checkTooManyComments() {
 //   "-" used for unary negation (start number)
 //   "*" used for pointer operator
 //   "/" used in units (e.g., ft/sec)
-bool StyleScanner::isSpacedOperator(string s) {
+bool StyleScanner::isSpacedOperator(const string &s) {
 	const string SPACE_OPS[] = {"+", "%", "<<", ">>", "<=", ">=",
 		"==", "!=", "&&", "||", "=", "+=", "-=", "*=", "/="};
 	for (string op: SPACE_OPS) {
@@ -821,7 +828,7 @@ void StyleScanner::checkPunctuationSpacing() {
 //   Splits on spaces, identifiers, numbers, and punctuation.
 //   Simplistic: Gets blocks of punctuation, glues grouping symbols, etc.
 //   Starts at pos; updates pos to after found token.
-string StyleScanner::getNextToken(string s, int &pos) {
+string StyleScanner::getNextToken(const string &s, int &pos) {
 
 	// Eat spaces
 	while (pos < getLength(s) && isspace(s[pos])) {
@@ -860,13 +867,13 @@ string StyleScanner::getNextToken(string s, int &pos) {
 }
 
 // Get first token on a line
-string StyleScanner::getFirstToken(string s) {
+string StyleScanner::getFirstToken(const string &s) {
 	int pos = 0;
 	return getNextToken(s, pos);
 }
 
 // Get last token on a line
-string StyleScanner::getLastToken(string s) {
+string StyleScanner::getLastToken(const string &s) {
 	int pos = 0;
 	string lastToken = "";
 	string nextToken = getNextToken(s, pos);
@@ -892,7 +899,7 @@ void StyleScanner::showTokens() {
 }
 
 // Is this string a fundamental type?
-bool StyleScanner::isType(string s) {
+bool StyleScanner::isType(const string &s) {
 	const string TYPES[] = {"int", "float", "double",
 		"char", "bool", "string", "void"};
 	for (string type: TYPES) {
@@ -904,7 +911,7 @@ bool StyleScanner::isType(string s) {
 }
 
 // Is this string an acceptable constant name?
-bool StyleScanner::isOkConstant(string s) {
+bool StyleScanner::isOkConstant(const string &s) {
 	if (getLength(s) < 2) {
 		return false;
 	}
@@ -939,7 +946,7 @@ void StyleScanner::checkConstantNames() {
 }
 
 // Is this string an acceptable variable name?
-bool StyleScanner::isOkVariable(string s) {
+bool StyleScanner::isOkVariable(const string &s) {
 	if (getLength(s) < 2
 		|| !islower(s[0]))
 	{
@@ -956,7 +963,7 @@ bool StyleScanner::isOkVariable(string s) {
 }
 
 // Does this token start with an open parenthesis?
-bool StyleScanner::isStartParen(string s) {
+bool StyleScanner::isStartParen(const string &s) {
 	return getLength(s) > 0 && s[0] == '(';
 }
 
@@ -992,7 +999,7 @@ void StyleScanner::checkVariableNames() {
 
 // Is this string an acceptable function name?
 //   Currently same rule as for variable names.
-bool StyleScanner::isOkFunction(string s) {
+bool StyleScanner::isOkFunction(const string &s) {
 	return isOkVariable(s);
 }
 
@@ -1038,14 +1045,14 @@ void StyleScanner::checkFunctionLeadComments() {
 }
 
 // Is the given line a function header?
-bool StyleScanner::isFunctionHeader (string s) {
+bool StyleScanner::isFunctionHeader (const string &s) {
 	string dummyName;
 	return isFunctionHeader(s, dummyName);
 }
 
 // Is the given line a function header?
 //   If so, return function name in parameter.
-bool StyleScanner::isFunctionHeader (string s, string &name) {
+bool StyleScanner::isFunctionHeader (const string &s, string &name) {
 	int pos = 0;
 	string type = getNextToken(s, pos);
 	if (isType(type)) {
@@ -1055,21 +1062,18 @@ bool StyleScanner::isFunctionHeader (string s, string &name) {
 		}
 		string nextSymbol = getNextToken(s, pos);
 		if (isStartParen(nextSymbol)) {
-
+			
 			// Avoid prototypes
-			while (pos < getLength(s)) {
-				if (s[pos] == SEMICOLON)
-					return false;
-				pos++;	
+			if (!isLineEndingSemicolon(s)) {
+				return true;	
 			}
-			return true;
 		}
 	}
 	return false;
 }
 
 // Is this string an acceptable structure name?
-bool StyleScanner::isOkStructure(string s) {
+bool StyleScanner::isOkStructure(const string &s) {
 	if (getLength(s) < 2
 		|| !isupper(s[0]))
 	{
@@ -1106,7 +1110,7 @@ void StyleScanner::checkStructureNames() {
 
 // Is this string an acceptable class name?
 //   Currently same rule as for variable names.
-bool StyleScanner::isOkClass(string s) {
+bool StyleScanner::isOkClass(const string &s) {
 	return isOkStructure(s);
 }
 
@@ -1130,7 +1134,7 @@ void StyleScanner::checkClassNames() {
 }
 
 // Is this a class header line?
-bool StyleScanner::isClassHeader (string s) {
+bool StyleScanner::isClassHeader (const string &s) {
 	return getFirstToken(s) == "class";
 }
 
