@@ -1033,7 +1033,7 @@ void StyleScanner::checkFunctionLeadComments() {
 		vector<int> errorLines;
 		for (int i = 0; i < getSize(fileLines); i++) {
 			if (!isCommentLine(i)
-				&& !(scopeLevels[i] > 0)
+				&& scopeLevels[i] == 0
 				&& isFunctionHeader(fileLines[i])
 				&& !isLeadInCommentHere(i)) 
 			{
@@ -1055,18 +1055,19 @@ bool StyleScanner::isFunctionHeader (const string &s) {
 bool StyleScanner::isFunctionHeader (const string &s, string &name) {
 	int pos = 0;
 	string type = getNextToken(s, pos);
-	if (isType(type)) {
+	if (isType(type) && !isLineEndingSemicolon(s))
+	{
 		name = getNextToken(s, pos);
 		while (name == "*") {
 			name = getNextToken(s, pos);
 		}
 		string nextSymbol = getNextToken(s, pos);
+		if (nextSymbol == "::") {
+			name = getNextToken(s, pos);
+			nextSymbol = getNextToken(s, pos);
+		}
 		if (isStartParen(nextSymbol)) {
-			
-			// Avoid prototypes
-			if (!isLineEndingSemicolon(s)) {
-				return true;	
-			}
+			return true;
 		}
 	}
 	return false;
