@@ -65,7 +65,7 @@ class StyleScanner {
 		string getNextToken(const string &s, int &pos);
 		string getFirstToken(const string &s);
 		string getLastToken(const string &s);
-		bool isType(const string &s);
+		bool isBasicType(const string &s);
 		bool isOkConstant(const string &s);
 		bool isOkVariable(const string &s);
 		bool isOkFunction(const string &s);
@@ -899,7 +899,7 @@ void StyleScanner::showTokens() {
 }
 
 // Is this string a fundamental type?
-bool StyleScanner::isType(const string &s) {
+bool StyleScanner::isBasicType(const string &s) {
 	const string TYPES[] = {"int", "float", "double",
 		"char", "bool", "string", "void"};
 	for (string type: TYPES) {
@@ -933,7 +933,7 @@ void StyleScanner::checkConstantNames() {
 			string prefix = getNextToken(line, pos);
 			if (prefix == "const") {
 				string type = getNextToken(line, pos);
-				if (isType(type)) {
+				if (isBasicType(type)) {
 					string name = getNextToken(line, pos);
 					if (!isOkConstant(name)) {
 						errorLines.push_back(i);
@@ -976,7 +976,7 @@ void StyleScanner::checkVariableNames() {
 			int pos = 0;
 			string line = fileLines[i];
 			string type = getNextToken(line, pos);
-			if (isType(type)) {
+			if (isBasicType(type)) {
 
 				// Get the variable name
 				string name = getNextToken(line, pos);
@@ -986,7 +986,10 @@ void StyleScanner::checkVariableNames() {
 
 				// Check only non-function names
 				string nextSymbol = getNextToken(line, pos);
-				if (!isStartParen(nextSymbol) && nextSymbol != "::") {
+				if (!isStartParen(nextSymbol) 
+						&& nextSymbol != "::"
+						&& nextSymbol != "<") 
+				{
 					if (!isOkVariable(name)) {
 						errorLines.push_back(i);
 					}
@@ -1055,7 +1058,7 @@ bool StyleScanner::isFunctionHeader (const string &s) {
 bool StyleScanner::isFunctionHeader (const string &s, string &name) {
 	int pos = 0;
 	string type = getNextToken(s, pos);
-	if (isType(type) && !isLineEndingSemicolon(s))
+	if (isBasicType(type) && !isLineEndingSemicolon(s))
 	{
 		name = getNextToken(s, pos);
 		while (name == "*") {
