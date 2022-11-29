@@ -1034,10 +1034,27 @@ void StyleScanner::checkFunctionNames() {
 
 // Is there a lead-in comment to the function here?
 bool StyleScanner::isLeadInCommentHere(int line) {
-	if (line < 2)
+
+	// No room for comment
+	if (line < 1)
 		return false;
-	return (isCommentLine(line - 1)
-		|| (isBlank(line - 1) && isCommentLine(line - 2)));
+		
+	// Handle template prefix
+	if (getFirstToken(fileLines[line - 1]) == "template")
+		return isLeadInCommentHere(line - 1);
+	
+	// Handle comment one line above
+	if (isCommentLine(line - 1))
+		return true;
+		
+	// Handle comment two lines above
+	if (line > 1
+			&& isBlank(line - 1)
+			&& isCommentLine(line - 2))
+		return true;
+	
+	// Failure
+	return false;
 }
 
 // Check for lead-in comments before functions
