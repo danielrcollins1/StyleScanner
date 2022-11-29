@@ -733,11 +733,12 @@ void StyleScanner::checkTooManyComments() {
 //    Note we must skip many symbols used for other purposes, e.g.:
 //   '<', '>' used for brackets in #includes, templates
 //   "++", "--" pre/postfix to variable
+//   "+" used in name of overloaded operator+
 //   "-" used for unary negation (start number)
 //   "*" used for pointer operator
 //   "/" used in units (e.g., ft/sec)
 bool StyleScanner::isSpacedOperator(const string &s) {
-	const string SPACE_OPS[] = {"+", "%", "<<", ">>", "<=", ">=",
+	const string SPACE_OPS[] = {"%", "<<", ">>", "<=", ">=",
 		"==", "!=", "&&", "||", "=", "+=", "-=", "*=", "/="};
 	for (string op: SPACE_OPS) {
 		if (s == op) {
