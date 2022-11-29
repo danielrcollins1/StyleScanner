@@ -76,6 +76,7 @@ class StyleScanner {
 		bool isFunctionHeader (const string &s);
 		bool isFunctionHeader (const string &s, string &name);
 		bool isClassHeader (const string &s);
+		bool isPreprocessorDirective (const string &s);
 		bool stringStartsWith(const string &s, const string &t);
 		bool stringEndsWith(const string &s, const string &t);
 
@@ -1142,9 +1143,14 @@ bool StyleScanner::isClassHeader (const string &s) {
 	return getFirstToken(s) == "class";
 }
 
+// Is this a prepricessor directive?
+bool StyleScanner::isPreprocessorDirective (const string &s) {
+	return getFirstToken(s) == "#";
+}
+
 // Check extraneous blank lines
 //    Blank lines should only occur:
-//    before comment, label, function, or class header
+//    before comment, label, function, class, or preprocessor directive
 void StyleScanner::checkExtraneousBlanks() {
 	vector<int> errorLines;
 	for (int i = 0; i < (int) getSize(fileLines) - 2; i++) {
@@ -1154,7 +1160,8 @@ void StyleScanner::checkExtraneousBlanks() {
 			if (!commentLines[next]
 				&& !isLineLabel(nextLine)
 				&& !isFunctionHeader(nextLine)
-				&& !isClassHeader(nextLine))
+				&& !isClassHeader(nextLine)
+				&& !isPreprocessorDirective(nextLine))
 			{
 				errorLines.push_back(i);
 			}
