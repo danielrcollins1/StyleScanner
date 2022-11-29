@@ -109,6 +109,7 @@ class StyleScanner {
 	private:
 		string fileName;
 		bool exitAfterArgs = false;
+		bool doFunctionCommentCheck = true;
 		bool doFunctionLengthCheck = true;
 		vector<string> fileLines;
 		vector<int> commentLines;
@@ -138,21 +139,29 @@ void StyleScanner::printBanner() {
 void StyleScanner::printUsage() {
 	cout << "Usage: StyleScanner file [options]\n";
 	cout << "  where options include:\n";
-	cout << "\t-f suppress function length check\n";
+	cout << "\t-fc suppress function comment check\n";
+	cout << "\t-fl suppress function length check\n";
 	cout << endl;
 }
 
 // Parse arguments
 void StyleScanner::parseArgs(int argc, char** argv) {
 	for (int count = 1; count < argc; count++) {
-		if (argv[count][0] == '-') {
-			switch (argv[count][1]) {
-				case 'f': doFunctionLengthCheck = false; break;
+		char *arg = argv[count];
+		if (arg[0] == '-') {
+			switch (arg[1]) {
+				case 'f': 
+					switch (arg[2]) {
+						case 'c': doFunctionCommentCheck = false; break;
+						case 'l': doFunctionLengthCheck = false; break;
+						default: exitAfterArgs = true;
+					}
+					break;
 				default: exitAfterArgs = true;
 			}
 		}
 		else if (fileName == "") {
-			fileName = argv[count];
+			fileName = arg;
 		}
 		else {
 			exitAfterArgs = true;
@@ -1033,7 +1042,7 @@ bool StyleScanner::isLeadInCommentHere(int line) {
 
 // Check for lead-in comments before functions
 void StyleScanner::checkFunctionLeadComments() {
-	if (doFunctionLengthCheck) {
+	if (doFunctionCommentCheck) {
 		vector<int> errorLines;
 		for (int i = 0; i < getSize(fileLines); i++) {
 			if (!isCommentLine(i)
