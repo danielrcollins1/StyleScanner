@@ -20,6 +20,7 @@ class StyleScanner {
 		void printBanner();
 		void printUsage();
 		void parseArgs(int argc, char** argv);
+		void parseFunctionArg(char* arg);
 		bool getExitAfterArgs();
 		bool readFile();
 		void writeFile();
@@ -98,7 +99,7 @@ class StyleScanner {
 		void checkAnyComments();
 		void checkHeaderStart();
 		void checkHeaderFormat();
-		void checkEndLineComments();
+		void checkEndlineComments();
 		void checkBlanksBeforeComments();
 		void checkTooFewComments();
 		void checkTooManyComments();
@@ -150,13 +151,7 @@ void StyleScanner::parseArgs(int argc, char** argv) {
 		char *arg = argv[count];
 		if (arg[0] == '-') {
 			switch (arg[1]) {
-				case 'f': 
-					switch (arg[2]) {
-						case 'c': doFunctionCommentCheck = false; break;
-						case 'l': doFunctionLengthCheck = false; break;
-						default: exitAfterArgs = true;
-					}
-					break;
+				case 'f': parseFunctionArg(arg); break;
 				default: exitAfterArgs = true;
 			}
 		}
@@ -169,6 +164,17 @@ void StyleScanner::parseArgs(int argc, char** argv) {
 	}
 	if (fileName == "") {
 		exitAfterArgs = true;
+	}
+}
+
+// Parse function-format arguments
+void StyleScanner::parseFunctionArg(char* arg) {
+	assert(strlen(arg) >= 3);
+	assert(arg[0] == '-' && arg[1] == 'f');
+	switch (arg[2]) {
+		case 'c': doFunctionCommentCheck = false; break;
+		case 'l': doFunctionLengthCheck = false; break;
+		default: exitAfterArgs = true;
 	}
 }
 
@@ -204,7 +210,7 @@ void StyleScanner::checkErrors() {
 	checkHeaderStart();
 	checkHeaderFormat();
 	checkEndlineRunonComments();
-	checkEndLineComments();
+	checkEndlineComments();
 	checkFunctionLeadComments();
 	checkBlanksBeforeComments();
 	checkTooFewComments();
@@ -322,7 +328,7 @@ bool StyleScanner::stringEndsWith(const string &s, const string &t) {
 }
 
 // Find where the comment lines are
-//    Assumes comments are full lines (no end-line comments, etc.)
+//    Assumes comments are full lines (no endline comments, etc.)
 //    Records lines as 0: no comment, 1: C-style, 2: C++-style
 void StyleScanner::scanCommentLines() {
 	commentLines.resize(getSize(fileLines));
@@ -572,8 +578,8 @@ bool StyleScanner::isIndentTabs(int line) {
 	return true;
 }
 
-// Check end-line comments
-void StyleScanner::checkEndLineComments() {
+// Check endline comments
+void StyleScanner::checkEndlineComments() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!commentLines[i]
@@ -583,7 +589,7 @@ void StyleScanner::checkEndLineComments() {
 			errorLines.push_back(i);
 		}
 	}
-	printErrors("End-line comments shouldn't be used", errorLines);
+	printErrors("Endline comments shouldn't be used", errorLines);
 }
 
 // Check tab usage for indents
@@ -775,7 +781,7 @@ void StyleScanner::checkSpacedOperators() {
 	printErrors("Operators should have surrounding spaces", errorLines);
 }
 
-// Check for end-line C-style comments that continue to next line
+// Check for endline C-style comments that continue to next line
 //   Never seen this, but it would foil all our other comment logic.
 void StyleScanner::checkEndlineRunonComments() {
 	vector<int> errorLines;
@@ -787,7 +793,7 @@ void StyleScanner::checkEndlineRunonComments() {
 			errorLines.push_back(i);
 		}
 	}
-	printErrors("End-line run-on comments used!", errorLines);
+	printErrors("Endline run-on comments used!", errorLines);
 }
 
 // Is this a punctuation character?
