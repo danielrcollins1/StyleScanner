@@ -189,33 +189,36 @@ bool StyleScanner::getExitAfterArgs() {
 //   we'll cut off the rest for student focus.
 void StyleScanner::checkErrors() {
 
-	// Readability items
-	cout << "\n# Readability #\n";
+	// Must-have items
+	cout << "\n# Must-Have Items #\n";
+	checkAnyComments();
+	checkHeaderStart();
+	checkHeaderFormat();
 	checkFunctionLength();
-	checkLineLength();
-	checkIndentLevels();
+
+	// Readability items
+	cout << "\n# Readability Items #\n";
 	checkTabUsage();
-	checkClassNames();
-	checkStructureNames();
-	checkFunctionNames();
-	checkConstantNames();
+	checkIndentLevels();
+	checkLineLength();
 	checkVariableNames();
+	checkConstantNames();
+	checkFunctionNames();
+	checkStructureNames();
+	checkClassNames();
 	checkExtraneousBlanks();
 	checkPunctuationSpacing();
 	checkSpacedOperators();
 
 	// Documentation items
-	cout << "\n# Documentation #\n";
-	checkAnyComments();
-	checkHeaderStart();
-	checkHeaderFormat();
-	checkEndlineRunonComments();
-	checkEndlineComments();
+	cout << "\n# Documentation items #\n";
 	checkFunctionLeadComments();
 	checkBlanksBeforeComments();
 	checkTooFewComments();
 	checkTooManyComments();
 	checkStartSpaceComments();
+	checkEndlineComments();
+	checkEndlineRunonComments();
 }
 
 // Read a code file
@@ -1014,7 +1017,7 @@ void StyleScanner::checkVariableNames() {
 			}
 		}
 	}
-	printErrors("Variables should be camel-case name", errorLines);
+	printErrors("Variables need full camelCase name", errorLines);
 }
 
 // Is this string an acceptable function name?
@@ -1036,7 +1039,7 @@ void StyleScanner::checkFunctionNames() {
 			}
 		}
 	}
-	printErrors("Functions should be camel-case name", errorLines);
+	printErrors("Functions need full camelCase name", errorLines);
 }
 
 // Is there a lead-in comment to the function here?
