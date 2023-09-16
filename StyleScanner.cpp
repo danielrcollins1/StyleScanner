@@ -12,6 +12,7 @@
 #include <string>
 #include <fstream>
 #include <cassert>
+#include <cstring>
 using namespace std;
 
 // StyleScanner class
