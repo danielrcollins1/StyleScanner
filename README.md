@@ -10,3 +10,5 @@ Compile StyleScanner and (most simply) move the program to scan into the same di
 Then run StyleScanner on the command-line, giving the program to scan as the one argument.
 
 Example invocation: **StyleScanner MyProgram.cpp**
+
+(or in PowerShell: _.\StyleScanner MyProgram.cpp_)
