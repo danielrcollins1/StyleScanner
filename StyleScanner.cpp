@@ -46,9 +46,13 @@ class StyleScanner {
 		int getFirstNonspacePos(const string &line);
 		int getLastNonspacePos(const string &line);
 		int getStartTabCount(const string &line);
+		
+		// Boolean helper functions
 		bool isIndentTabs(int line);
 		bool isBlank(int line);
 		bool isBlank(const string &line);
+		bool isLeftBrace(int line);
+		bool isBlankOrBrace(int line);
 		bool isCommentLine(int line);
 		bool isCommentBeforeCase(int line);
 		bool isPunctuation(char c);
@@ -304,31 +308,28 @@ bool StyleScanner::isBlank(int line) {
 	return isBlank(fileLines[line]);
 }
 
+// Is this line solely a left-brace?
+bool StyleScanner::isLeftBrace(int line) {
+	int startPos = getFirstNonspacePos(fileLines[line]);
+	int endPos = getLastNonspacePos(fileLines[line]);
+	return startPos != -1
+		&& startPos == endPos
+		&& fileLines[line][startPos] == LEFT_BRACE;
+}
+
+// Is this line either blank or a left-brace?
+bool StyleScanner::isBlankOrBrace(int line) {
+	return isBlank(line) || isLeftBrace(line);	
+}
+
 // Does string s start with string t?
 bool StyleScanner::stringStartsWith(const string &s, const string &t) {
-	if (getLength(s) >= getLength(t)) {
-		for (int i = 0; i < getLength(t); i++) {
-			if (s[i] != t[i]) {
-				return false;
-			}
-		}
-		return true;
-	}
-	return false;
+	return s.rfind(t, 0) == 0;
 }
 
 // Does string s end with string t?
 bool StyleScanner::stringEndsWith(const string &s, const string &t) {
-	if (getLength(s) >= getLength(t)) {
-		int offset = getLength(s) - t.length();
-		for (int i = 0; i < getLength(t); i++) {
-			if (s[i + offset] != t[i]) {
-				return false;
-			}
-		}
-		return true;
-	}
-	return false;
+	return s.find(t, s.length() - t.length()) != string::npos;
 }
 
 // Find where the comment lines are
@@ -675,15 +676,11 @@ void StyleScanner::checkIndentLevels() {
 void StyleScanner::checkBlanksBeforeComments() {
 	vector<int> errorLines;
 	for (int i = 1; i < getSize(fileLines); i++) {
-		if (commentLines[i]) {
-			string priorLine = fileLines[i - 1];
-			int priorEndIndent = getFirstNonspacePos(priorLine);
-			if (!isBlank(i - 1)
-				&& !commentLines[i - 1]
-				&& !(priorLine[priorEndIndent] == LEFT_BRACE))
-			{
-				errorLines.push_back(i);
-			}
+		if (commentLines[i]
+			&& !commentLines[i - 1]
+			&& !isBlankOrBrace(i - 1))
+		{
+			errorLines.push_back(i);
 		}
 	}
 	printErrors("Missing blank line before comment", errorLines);
