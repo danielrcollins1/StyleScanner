@@ -12,3 +12,5 @@ Then run StyleScanner on the command-line, giving the program to scan as the one
 Example invocation: **StyleScanner MyProgram.cpp**
 
 (or in PowerShell: _.\StyleScanner MyProgram.cpp_)
+
+A video tutorial is available on YouTube here: https://youtu.be/0QfOqn4STgA
