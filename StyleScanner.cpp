@@ -1,6 +1,6 @@
 /*
 	Name: StyleScanner
-	Copyright: 2021
+	Copyright: 2021-2024
 	Author: Daniel R. Collins
 	Date: 04/08/21 00:05
 	Description: Scans approved style for student C++ assignment submissions.
@@ -111,9 +111,11 @@ class StyleScanner {
 		void checkEndlineRunonComments();
 		void checkStartSpaceComments();
 		void checkFunctionLeadComments();
+		void checkNoErrors();
 
 	private:
 		string fileName;
+		bool anyErrors = false;
 		bool exitAfterArgs = false;
 		bool doFunctionCommentCheck = true;
 		bool doFunctionLengthCheck = true;
@@ -194,15 +196,13 @@ bool StyleScanner::getExitAfterArgs() {
 //   we'll cut off the rest for student focus.
 void StyleScanner::checkErrors() {
 
-	// Must-have items
-	cout << "\n# Must-Have Items #\n";
+	// Critical items
 	checkAnyComments();
 	checkHeaderStart();
 	checkHeaderFormat();
 	checkFunctionLength();
 
 	// Readability items
-	cout << "\n# Readability Items #\n";
 	checkTabUsage();
 	checkIndentLevels();
 	checkLineLength();
@@ -216,7 +216,6 @@ void StyleScanner::checkErrors() {
 	checkSpacedOperators();
 
 	// Documentation items
-	cout << "\n# Documentation items #\n";
 	checkFunctionLeadComments();
 	checkBlanksBeforeComments();
 	checkTooFewComments();
@@ -224,6 +223,9 @@ void StyleScanner::checkErrors() {
 	checkStartSpaceComments();
 	checkEndlineComments();
 	checkEndlineRunonComments();
+	
+	// No-errors message
+	checkNoErrors();
 }
 
 // Read a code file
@@ -479,6 +481,11 @@ void StyleScanner::printError(const string &error) {
 //   Line numbers are incremented for user display.
 void StyleScanner::printErrors(const string &error, const vector<int> &lines) {
 
+	// Flag any errors
+	if (lines.size() > 0) {
+		anyErrors = true;	
+	}
+
 	// Singular error
 	if (lines.size() == 1) {
 		cout << error << " (line " << lines[0] + 1 << ").\n";
@@ -498,6 +505,13 @@ void StyleScanner::printErrors(const string &error, const vector<int> &lines) {
 	}
 }
 
+// Print success message if no errors found.
+void StyleScanner::checkNoErrors() {
+	if (!anyErrors) {
+		cout << "No errors found.\n";	
+	}
+}
+
 // Get index of first comment line
 //   Returns -1 if none whatsoever
 int StyleScanner::getFirstCommentLine() {
@@ -512,7 +526,7 @@ int StyleScanner::getFirstCommentLine() {
 // Check if the file has any comment lines at all
 void StyleScanner::checkAnyComments() {
 	if (getFirstCommentLine() == -1) {
-		printError("File lacks any comment lines!");
+		printError("No comments found!");
 	}
 }
 
@@ -520,27 +534,32 @@ void StyleScanner::checkAnyComments() {
 //   File should start with a comment
 void StyleScanner::checkHeaderStart() {
 	if (getFirstCommentLine() != 0) {
-		printError("Misplaced file comment header (line 1).");
+		printError("No comment on first line! (line 1).");
 	}
 }
 
 // Check file header
 void StyleScanner::checkHeaderFormat() {
 	vector<int> errorLines;
-	const string HEADER[] = {C_COMMENT_START, "\tName:", "\tCopyright:",
-		"\tAuthor:", "\tDate:", "\tDescription:"};
+	const string HEADER[] = {C_COMMENT_START, "Name:", "Copyright:",
+		"Author:", "Date:", "Description:"};
 	int currLine = getFirstCommentLine();
 	if (currLine >= 0) {
 		for (string headPrefix: HEADER) {
-			if (currLine >= getSize(fileLines)
-				|| !stringStartsWith(fileLines[currLine], headPrefix))
-			{
+			if (currLine >= getSize(fileLines)) {
 				errorLines.push_back(currLine);
+			}
+			else {
+				string thisLine = fileLines[currLine];
+				unsigned int startIdx = getFirstNonspacePos(thisLine);
+				if (thisLine.find(headPrefix, startIdx) != startIdx) {
+					errorLines.push_back(currLine);
+				}
 			}
 			currLine++;
 		}
 	}
-	printErrors("Invalid comment header", errorLines);
+	printErrors("Invalid comment header!", errorLines);
 }
 
 // Check line lengths
@@ -594,7 +613,7 @@ void StyleScanner::checkEndlineComments() {
 			errorLines.push_back(i);
 		}
 	}
-	printErrors("Endline comments shouldn't be used", errorLines);
+	printErrors("Endline comments should not be used", errorLines);
 }
 
 // Check tab usage for indents
@@ -794,14 +813,15 @@ void StyleScanner::checkEndlineRunonComments() {
 			errorLines.push_back(i);
 		}
 	}
-	printErrors("Endline run-on comments used!", errorLines);
+	printErrors("Endline run-on comments are very bad", errorLines);
 }
 
 // Is this a punctuation character?
 //   Can't do colons, b/c of time, scope-resolution operator.
+//   Can't do question mark, b/c conventionally has space before.
 //   Commas in big numbers problematic (but retain check for now).
 bool StyleScanner::isPunctuation(char c) {
-	const char PUNCT[] = {COMMA, SEMICOLON, QUESTION_MARK};
+	const char PUNCT[] = {COMMA, SEMICOLON};
 	for (char punct: PUNCT) {
 		if (c == punct) {
 			return true;
@@ -1153,7 +1173,7 @@ bool StyleScanner::isOkClass(const string &s) {
 	return isOkStructure(s);
 }
 
-// Check structure names
+// Check class names
 void StyleScanner::checkClassNames() {
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
@@ -1224,23 +1244,34 @@ void StyleScanner::checkStartSpaceComments() {
 // Check for overly long functions.
 void StyleScanner::checkFunctionLength() {
 	if (doFunctionLengthCheck) {
+		const int MAX_INLINE = 3;
 		const int LONG_FUNC = 25;
+		bool inClassHeader = false;
 		vector<int> errorLines;
 		for (int i = 0; i < getSize(fileLines); i++) {
-			if (isFunctionHeader(fileLines[i])) {
-				int startScope = scopeLevels[i];
-				int startScan = i++;
-
-				// Search for end of function
-				while (i < getSize(fileLines) &&
-					(isLineStartOpenBrace(fileLines[i])
-					|| scopeLevels[i] > startScope))
-				{
-					i++;
+			if (scopeLevels[i] == 0) {
+				inClassHeader = false;	
+			}
+			if (!commentLines[i]) {
+				if (getFirstToken(fileLines[i]) == "class") {
+					inClassHeader = true;										
 				}
-				int funcLength = i - startScan;
-				if (funcLength > LONG_FUNC) {
-					errorLines.push_back(startScan);
+				if (isFunctionHeader(fileLines[i])) {
+					int startScope = scopeLevels[i];
+					int startScan = i++;
+	
+					// Search for end of function
+					while (i < getSize(fileLines) &&
+						(isLineStartOpenBrace(fileLines[i])
+						|| scopeLevels[i] > startScope))
+					{
+						i++;
+					}
+					int funcLength = i - startScan - 1;
+					int limit = inClassHeader ? MAX_INLINE : LONG_FUNC;
+					if (funcLength > limit) {
+						errorLines.push_back(startScan);
+					}
 				}
 			}
 		}
