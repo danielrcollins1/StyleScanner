@@ -9,8 +9,6 @@ Output is categorized & summarized for brevity.
 Compile StyleScanner and (most simply) move the program to scan into the same directory.
 Then run StyleScanner on the command-line, giving the program to scan as the one argument.
 
-Example invocation: **StyleScanner MyProgram.cpp**
-
-(or in PowerShell: _.\StyleScanner MyProgram.cpp_)
+Example invocation: **.\StyleScanner MyProgram.cpp**
 
 A video tutorial is available on YouTube here: https://youtu.be/0QfOqn4STgA
