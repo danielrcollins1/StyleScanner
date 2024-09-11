@@ -11,4 +11,4 @@ Then run StyleScanner on the command-line, giving the program to scan as the one
 
 Example invocation: **.\StyleScanner MyProgram.cpp**
 
-A video tutorial is available on YouTube here: https://youtu.be/0QfOqn4STgA
+A video tutorial is available on YouTube here: https://youtu.be/IBtHUTGg4Mw
