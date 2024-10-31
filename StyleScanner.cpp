@@ -3,16 +3,17 @@
 	Copyright: 2021-2024
 	Author: Daniel R. Collins
 	Date: 04/08/21 00:05
-	Description: Scans approved style for student C++ assignment submissions.
+	Description: 
+		Scans approved style for student C++ assignment submissions.
 		Broadly aligned with Gaddis C++ textbook styling.
 		Also expect Dev-C++ style comment header.
 */
 #include <iostream>
-#include <vector>
 #include <string>
-#include <fstream>
-#include <cassert>
 #include <cstring>
+#include <fstream>
+#include <vector>
+#include <cassert>
 using namespace std;
 
 // StyleScanner class
@@ -28,7 +29,7 @@ class StyleScanner {
 		void checkErrors();
 		void showTokens();
 
-	protected:
+	private:
 
 		// Initial file scanning
 		void scanCommentLines();
@@ -62,6 +63,7 @@ class StyleScanner {
 		bool isLineStartOpenBrace(const string &line);
 		bool isLineStartCloseBrace(const string &line);
 		bool isLineEndingSemicolon(const string &line);
+		bool isFunctionSymbol(const string &symbol);
 		bool isOkayIndentLevel(int line);
 		bool isSameScope (int startLine, int numLines);
 		bool isLeadInCommentHere(int line);
@@ -86,7 +88,15 @@ class StyleScanner {
 		bool stringStartsWith(const string &s, const string &t);
 		bool stringEndsWith(const string &s, const string &t);
 
+		// Critical items
+		void checkCriticalErrors();
+		void checkAnyComments();
+		void checkHeaderStart();
+		void checkHeaderFormat();
+		void checkFunctionLength();
+
 		// Readability items
+		void checkReadabilityErrors();
 		void checkLineLength();
 		void checkTabUsage();
 		void checkIndentLevels();
@@ -98,12 +108,9 @@ class StyleScanner {
 		void checkClassNames();
 		void checkPunctuationSpacing();
 		void checkSpacedOperators();
-		void checkFunctionLength();
 
 		// Documentation items
-		void checkAnyComments();
-		void checkHeaderStart();
-		void checkHeaderFormat();
+		void checkDocumentationErrors();
 		void checkEndlineComments();
 		void checkBlanksBeforeComments();
 		void checkTooFewComments();
@@ -113,7 +120,7 @@ class StyleScanner {
 		void checkFunctionLeadComments();
 		void checkNoErrors();
 
-	private:
+		// Member data
 		string fileName;
 		bool anyErrors = false;
 		bool exitAfterArgs = false;
@@ -136,6 +143,9 @@ const char C_COMMENT_START[] = {'/', '*', '\0'};
 const char C_COMMENT_END[] = {'*', '/', '\0'};
 const char DOUBLE_SLASH[] = {'/', '/', '\0'};
 const char START_BLOCK[] = {LEFT_BRACE};
+
+// Enumeration for types of comments
+enum CommentTypes {NO_COMMENT = 0, C_COMMENT = 1, CPP_COMMENT = 2};
 
 // Print program banner
 void StyleScanner::printBanner() {
@@ -191,18 +201,24 @@ bool StyleScanner::getExitAfterArgs() {
 }
 
 // Combined check-errors function
-//   Prioritize these (by what visually bugs me most)
-//   since after 4 errors per section
-//   we'll cut off the rest for student focus.
+//   Prioritized by importance
 void StyleScanner::checkErrors() {
+	checkCriticalErrors();
+	checkReadabilityErrors();
+	checkDocumentationErrors();
+	checkNoErrors();
+}
 
-	// Critical items
+// Check for critical errors
+void StyleScanner::checkCriticalErrors() {
 	checkAnyComments();
 	checkHeaderStart();
 	checkHeaderFormat();
 	checkFunctionLength();
+}
 
-	// Readability items
+// Check for readability errors
+void StyleScanner::checkReadabilityErrors() {
 	checkTabUsage();
 	checkIndentLevels();
 	checkLineLength();
@@ -214,8 +230,10 @@ void StyleScanner::checkErrors() {
 	checkExtraneousBlanks();
 	checkPunctuationSpacing();
 	checkSpacedOperators();
+}
 
-	// Documentation items
+// Check for documentation errors
+void StyleScanner::checkDocumentationErrors() {
 	checkFunctionLeadComments();
 	checkBlanksBeforeComments();
 	checkTooFewComments();
@@ -223,9 +241,6 @@ void StyleScanner::checkErrors() {
 	checkStartSpaceComments();
 	checkEndlineComments();
 	checkEndlineRunonComments();
-	
-	// No-errors message
-	checkNoErrors();
 }
 
 // Read a code file
@@ -336,7 +351,6 @@ bool StyleScanner::stringEndsWith(const string &s, const string &t) {
 
 // Find where the comment lines are
 //    Assumes comments are full lines (no endline comments, etc.)
-//    Records lines as 0: no comment, 1: C-style, 2: C++-style
 void StyleScanner::scanCommentLines() {
 	commentLines.resize(getSize(fileLines));
 	bool inCstyleComment = false;
@@ -349,7 +363,7 @@ void StyleScanner::scanCommentLines() {
 			inCstyleComment = true;
 		}
 		if (inCstyleComment) {
-			commentLines[i] = 1;
+			commentLines[i] = C_COMMENT;
 		}
 		if (stringEndsWith(lastToken, C_COMMENT_END)) {
 			inCstyleComment = false;
@@ -357,7 +371,7 @@ void StyleScanner::scanCommentLines() {
 
 		// Check C++-style comment
 		if (stringStartsWith(firstToken, DOUBLE_SLASH)) {
-			commentLines[i] = 2;
+			commentLines[i] = CPP_COMMENT;
 		}
 	}
 }
@@ -629,9 +643,10 @@ void StyleScanner::checkTabUsage() {
 
 // Is this line in the middle of a C-style block comment?
 bool StyleScanner::isMidBlockComment(int line){
-	return commentLines[line] == 1
-		&& (line > 0 && commentLines[line - 1] == 1)
-		&& (line < getSize(commentLines) - 1 && commentLines[line + 1] == 1);
+	return commentLines[line] == C_COMMENT
+		&& (line > 0 && commentLines[line - 1] == C_COMMENT)
+		&& (line < getSize(commentLines) - 1 
+			&& commentLines[line + 1] == C_COMMENT);
 }
 
 // Is this line possibly a run-on (continuation) statement?
@@ -652,9 +667,7 @@ bool StyleScanner::mayBeRunOnLine(int line) {
 bool StyleScanner::isOkayIndentLevel(int line) {
 
 	// Ignore some cases
-	if (isBlank(line) || isMidBlockComment(line)
-		|| !isIndentTabs(line))
-	{
+	if (isBlank(line) || isMidBlockComment(line) || !isIndentTabs(line)) {
 		return true;
 	}
 
@@ -662,16 +675,14 @@ bool StyleScanner::isOkayIndentLevel(int line) {
 	int scopeLevel = scopeLevels[line];
 	int numStartTabs = getStartTabCount(fileLines[line]);
 
-	// Comments before a case permit one less indent
-	//   (This is sketchy before the first case)
+	// Comments before a case permit one less indent (sketchy at first)
 	if (isCommentBeforeCase(line)) {
 		return numStartTabs	== scopeLevel
 			|| numStartTabs == scopeLevel - 1;
 	}
 
 	// Run-on (continuation) lines handling:
-	//   Artistic Style uses spaces for extra indents
-	//   So require at least scope level tabs
+	//   Artistic Style uses spaces, so require at least scope tabs
 	if (mayBeRunOnLine(line)) {
 		return numStartTabs >= scopeLevel;
 	}
@@ -1005,6 +1016,13 @@ bool StyleScanner::isStartParen(const string &s) {
 	return getLength(s) > 0 && s[0] == '(';
 }
 
+// Does this symbol after an identifier indicate a function?
+bool StyleScanner::isFunctionSymbol(const string& symbol) {
+	return isStartParen(symbol)
+		|| symbol == "::"
+		|| symbol == "<";
+}
+
 // Check variable names
 //   Note we check only first variable declared on a line.
 void StyleScanner::checkVariableNames() {
@@ -1024,10 +1042,7 @@ void StyleScanner::checkVariableNames() {
 
 				// Check only non-function names
 				string nextSymbol = getNextToken(line, pos);
-				if (!isStartParen(nextSymbol) 
-						&& nextSymbol != "::"
-						&& nextSymbol != "<") 
-				{
+				if (!isFunctionSymbol(nextSymbol)) {
 					if (!isOkVariable(name)) {
 						errorLines.push_back(i);
 					}
@@ -1197,7 +1212,7 @@ bool StyleScanner::isClassHeader (const string &s) {
 	return getFirstToken(s) == "class";
 }
 
-// Is this a prepricessor directive?
+// Is this a preprocessor directive?
 bool StyleScanner::isPreprocessorDirective (const string &s) {
 	return getFirstToken(s) == "#";
 }
