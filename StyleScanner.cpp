@@ -48,6 +48,7 @@ class StyleScanner {
 		int getFirstNonspacePos(const string &line);
 		int getLastNonspacePos(const string &line);
 		int getStartTabCount(const string &line);
+		int countFunctionLength(int startLine);
 		
 		// Boolean helper functions
 		bool isIndentTabs(int line);
@@ -1269,30 +1270,35 @@ void StyleScanner::checkFunctionLength() {
 				inClassHeader = false;	
 			}
 			if (!commentLines[i]) {
-				if (getFirstToken(fileLines[i]) == "class") {
+				if (isClassHeader(fileLines[i])) {
 					inClassHeader = true;										
 				}
 				if (isFunctionHeader(fileLines[i])) {
-					int startScope = scopeLevels[i];
-					int startScan = i++;
-	
-					// Search for end of function
-					while (i < getSize(fileLines) &&
-						(isLineStartOpenBrace(fileLines[i])
-						|| scopeLevels[i] > startScope))
-					{
-						i++;
-					}
-					int funcLength = i - startScan - 1;
+
+					// Check length against current limit
+					int funcLength = countFunctionLength(i);
 					int limit = inClassHeader ? MAX_INLINE : LONG_FUNC;
 					if (funcLength > limit) {
-						errorLines.push_back(startScan);
+						errorLines.push_back(i);
 					}
 				}
 			}
 		}
 		printErrors("Function is too long!", errorLines);
 	}
+}
+
+// Count function length from header line
+int StyleScanner::countFunctionLength(int startLine) {
+	int line = startLine;
+	int startScope = scopeLevels[line];
+	while (line < getSize(fileLines) &&
+		(isLineStartOpenBrace(fileLines[line])
+			|| scopeLevels[line] > startScope))
+	{
+		line++;
+	}
+	return line - startLine;	
 }
 
 // Main test driver
