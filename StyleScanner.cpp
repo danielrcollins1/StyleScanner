@@ -48,6 +48,7 @@ class StyleScanner {
 		int getFirstNonspacePos(const string &line);
 		int getLastNonspacePos(const string &line);
 		int getStartTabCount(const string &line);
+		int getFunctionLengthLimit(bool inClassHeader);
 		int countFunctionLength(int startLine);
 		
 		// Boolean helper functions
@@ -721,9 +722,11 @@ void StyleScanner::checkTooFewComments() {
 		if (commentLines[i]) {
 			int end = i + 1;
 			while (end < getSize(fileLines) && !commentLines[end++]);
-			if (end - i > LONG_STRETCH) {
+			int span = end - i - 2;
+			if (span > LONG_STRETCH) {
 				errorLines.push_back(i + LONG_STRETCH / 2);
 			}
+			i = end;
 		}
 	}
 	printErrors("Too few comments", errorLines);
@@ -1261,24 +1264,20 @@ void StyleScanner::checkStartSpaceComments() {
 // Check for overly long functions.
 void StyleScanner::checkFunctionLength() {
 	if (doFunctionLengthCheck) {
-		const int MAX_INLINE = 3;
-		const int LONG_FUNC = 25;
-		bool inClassHeader = false;
 		vector<int> errorLines;
+		bool inClassHeader = false;
 		for (int i = 0; i < getSize(fileLines); i++) {
 			if (scopeLevels[i] == 0) {
-				inClassHeader = false;	
+				inClassHeader = false;
 			}
 			if (!commentLines[i]) {
 				if (isClassHeader(fileLines[i])) {
-					inClassHeader = true;										
+					inClassHeader = true;
 				}
 				if (isFunctionHeader(fileLines[i])) {
-
-					// Check length against current limit
-					int funcLength = countFunctionLength(i);
-					int limit = inClassHeader ? MAX_INLINE : LONG_FUNC;
-					if (funcLength > limit) {
+					if (countFunctionLength(i) >
+						getFunctionLengthLimit(inClassHeader)) 
+					{
 						errorLines.push_back(i);
 					}
 				}
@@ -1288,17 +1287,24 @@ void StyleScanner::checkFunctionLength() {
 	}
 }
 
+// Get the relevant function length limit
+int StyleScanner::getFunctionLengthLimit(bool inClassHeader) {
+	const int MAX_INLINE = 3;
+	const int LONG_FUNC = 25;
+	return inClassHeader ? MAX_INLINE : LONG_FUNC;
+}
+
 // Count function length from header line
 int StyleScanner::countFunctionLength(int startLine) {
-	int line = startLine;
-	int startScope = scopeLevels[line];
+	int startScope = scopeLevels[startLine];
+	int line = startLine + 1;
 	while (line < getSize(fileLines) &&
 		(isLineStartOpenBrace(fileLines[line])
 			|| scopeLevels[line] > startScope))
 	{
 		line++;
 	}
-	return line - startLine;	
+	return line - startLine - 1;
 }
 
 // Main test driver
