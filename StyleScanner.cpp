@@ -34,6 +34,7 @@ class StyleScanner {
 		// Initial file scanning
 		void scanCommentLines();
 		void scanScopeLevels();
+		void scanScopeLabels();
 
 		// Utility functions
 		int getLength(const string &line);
@@ -149,6 +150,7 @@ enum CommentTypes {NO_COMMENT = 0, C_COMMENT = 1, CPP_COMMENT = 2};
 
 // Print program banner
 void StyleScanner::printBanner() {
+	cout << "\n";
 	cout << "StyleScanner\n";
 	cout << "------------\n";
 }
@@ -264,6 +266,7 @@ bool StyleScanner::readFile() {
 	// Post-processing
 	scanCommentLines();
 	scanScopeLevels();
+	scanScopeLabels();
 	return true;
 }
 
@@ -429,57 +432,49 @@ bool StyleScanner::isLineEndingSemicolon(const string &line) {
 	return lastPos != -1 && line[lastPos] == SEMICOLON;
 }
 
-// Scan for scope level at each line
-//   Increments at each brace
-//   Also counts labels as incremented scope
+// Basic scan for scope level at each line
+//   Increments/decrements at each brace
 void StyleScanner::scanScopeLevels() {
 	scopeLevels.resize(getSize(fileLines));
 	int scopeLevel = 0;
-	int labelLevel = -1;
-	bool inLabel = false;
 	for (int i = 0; i < getSize(fileLines); i++) {
-		if (commentLines[i]) {
-			scopeLevels[i] = scopeLevel;
+		scopeLevels[i] = scopeLevel;
+		if (!commentLines[i]) {
+			string line = fileLines[i];
+			for (int i = 0; i < getLength(line); i++) {
+				switch (line[i]) {
+					case LEFT_BRACE: scopeLevel++; break;
+					case RIGHT_BRACE: scopeLevel--; break;
+				}
+			}
+			
+			// Adjust current line back for first closure
+			if (isLineStartCloseBrace(line)) {
+				scopeLevels[i]--;
+			}
+		}
+	}
+}
+
+// Increment scope levels within labels
+//   Assumes basic scope levels set first
+//   Note labels only legitmate at scope level 1+.
+void StyleScanner::scanScopeLabels() {
+	int labelLevel = 0;
+	for (int i = 0; i < getSize(fileLines); i++) {
+		bool thisLineLabel = !commentLines[i] 
+			&& isLineLabel(fileLines[i]);
+		if (!labelLevel) {
+			if (thisLineLabel) {
+				labelLevel = scopeLevels[i];		
+			}
 		}
 		else {
-			string line = fileLines[i];
-			bool lineLabel = isLineLabel(line);
-
-			// Decrement for closing brace
-			if (isLineStartCloseBrace(line)) {
-				scopeLevel--;
-				if (inLabel && scopeLevel == labelLevel) {
-					scopeLevel--;
-					inLabel = false;
-				}
+			if (scopeLevels[i] < labelLevel) {
+				labelLevel = 0;
 			}
-
-			// Decrement for label-in-label
-			if (inLabel && lineLabel) {
-				scopeLevel--;
-			}
-
-			// Set that level
-			scopeLevels[i] = scopeLevel;
-
-			// Increment for a label
-			if (lineLabel) {
-				inLabel = true;
-				labelLevel = scopeLevel;
-				scopeLevel++;
-			}
-
-			// Scan rest of line for more braces to adjust
-			int firstPos = getFirstNonspacePos(line);
-			if (firstPos >= 0) {
-				for (int i = firstPos; i < getLength(line); i++) {
-					switch (line[i]) {
-						case LEFT_BRACE: scopeLevel++; break;
-						case RIGHT_BRACE: if (i > firstPos) {
-								scopeLevel--; break;
-							}
-					}
-				}
+			else if (!thisLineLabel) {
+				scopeLevels[i]++;
 			}
 		}
 	}
