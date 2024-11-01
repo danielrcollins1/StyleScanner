@@ -74,6 +74,7 @@ class StyleScanner {
 		string getNextToken(const string &s, int &pos);
 		string getFirstToken(const string &s);
 		string getLastToken(const string &s);
+		int findTokenEnd(const string &s, int pos);
 		bool isBasicType(const string &s);
 		bool isOkConstant(const string &s);
 		bool isOkVariable(const string &s);
@@ -132,6 +133,9 @@ class StyleScanner {
 		vector<int> scopeLevels;
 };
 
+// Enumeration for comment types
+enum CommentTypes {NO_COMMENT = 0, C_COMMENT, CPP_COMMENT};
+
 // Character codes to avoid confusing checker on this file
 const char COMMA = 44;
 const char SEMICOLON = 59;
@@ -144,9 +148,6 @@ const char C_COMMENT_START[] = {'/', '*', '\0'};
 const char C_COMMENT_END[] = {'*', '/', '\0'};
 const char DOUBLE_SLASH[] = {'/', '/', '\0'};
 const char START_BLOCK[] = {LEFT_BRACE};
-
-// Enumeration for types of comments
-enum CommentTypes {NO_COMMENT = 0, C_COMMENT = 1, CPP_COMMENT = 2};
 
 // Print program banner
 void StyleScanner::printBanner() {
@@ -880,34 +881,39 @@ string StyleScanner::getNextToken(const string &s, int &pos) {
 	}
 
 	// Get nothing
-	int start = pos;
 	if (pos >= getLength(s)) {
 		return "";
 	}
 
-	// Get a word
+	// Find token end
+	else {
+		int start = pos;
+		pos = findTokenEnd(s, pos);
+		return s.substr(start, pos - start);
+	}
+}
+
+// Find token end from legitimate start position
+//   Can identify a word, number, or punctuation series
+int StyleScanner::findTokenEnd(const string &s, int pos) {
+	assert(pos < getLength(s));
+	assert(!isspace(s[pos]));
 	if (isalpha(s[pos]) || s[pos] == '_') {
 		while (pos < getLength(s) && (isalnum(s[pos]) || s[pos] == '_')) {
 			pos++;
 		}
 	}
-
-	// Get a number
 	else if (isdigit(s[pos])) {
 		while (pos < getLength(s) && (isdigit(s[pos]) || s[pos] == '.')) {
 			pos++;
 		}
 	}
-
-	// Get punctuation
-	else {
+	else if (ispunct(s[pos])) {
 		while (pos < getLength(s) && ispunct(s[pos])) {
 			pos++;
 		}
 	}
-
-	// Return the found token
-	return s.substr(start, pos - start);
+	return pos;
 }
 
 // Get first token on a line
