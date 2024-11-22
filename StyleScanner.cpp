@@ -33,6 +33,7 @@ class StyleScanner {
 
 		// Initial file scanning
 		void scanCommentLines();
+		void scanNewTypeDefs();
 		void scanScopeLevels();
 		void scanScopeLabels();
 
@@ -78,6 +79,8 @@ class StyleScanner {
 		string getLastToken(const string &s);
 		int findTokenEnd(const string &s, int pos);
 		bool isBasicType(const string &s);
+		bool isNewType(const string &s);
+		bool isAnyType(const string &s);
 		bool isOkConstant(const string &s);
 		bool isOkVariable(const string &s);
 		bool isOkFunction(const string &s);
@@ -130,6 +133,7 @@ class StyleScanner {
 		bool doFunctionCommentCheck = true;
 		bool doFunctionLengthCheck = true;
 		vector<string> fileLines;
+		vector<string> newTypes;
 		vector<int> commentLines;
 		vector<int> scopeLevels;
 };
@@ -266,6 +270,7 @@ bool StyleScanner::readFile() {
 
 	// Post-processing
 	scanCommentLines();
+	scanNewTypeDefs();
 	scanScopeLevels();
 	scanScopeLabels();
 	return true;
@@ -431,6 +436,23 @@ bool StyleScanner::isLineLabel(const string &line) {
 bool StyleScanner::isLineEndingSemicolon(const string &line) {
 	int lastPos = getLastNonspacePos(line);
 	return lastPos != -1 && line[lastPos] == SEMICOLON;
+}
+
+// Scan for new type names
+//   Note currently just class/structs
+//   (not actual "typedef" statements)
+void StyleScanner::scanNewTypeDefs() {
+	for (int i = 0; i < getSize(fileLines); i++) {
+		if (!isCommentLine(i)) {
+			int pos = 0;
+			string line = fileLines[i];
+			string prefix = getNextToken(line, pos);
+			if (isClassKeyword(prefix)) {
+				string name = getNextToken(line, pos);
+				newTypes.push_back(name);
+			}
+		}
+	}
 }
 
 // Basic scan for scope level at each line
@@ -960,6 +982,20 @@ bool StyleScanner::isBasicType(const string &s) {
 		}
 	}
 	return false;
+}
+
+// Is this string a new defined type in this file?
+bool StyleScanner::isNewType(const string &s) {
+	for (string t: newTypes) {
+		if (s == t)
+			return true;
+	}
+	return false;
+}
+
+// Is this string any known type?
+bool StyleScanner::isAnyType(const string &s) {
+	return isBasicType(s) || isNewType(s);
 }
 
 // Is this string an acceptable constant name?
