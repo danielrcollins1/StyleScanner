@@ -68,7 +68,7 @@ class StyleScanner {
 		bool isLineEndingSemicolon(const string &line);
 		bool isFunctionSymbol(const string &symbol);
 		bool isOkayIndentLevel(int line);
-		bool isSameScope (int startLine, int numLines);
+		bool isSameScope(int startLine, int numLines);
 		bool isLeadInCommentHere(int line);
 		bool mayBeRunOnLine(int line);
 
@@ -84,11 +84,11 @@ class StyleScanner {
 		bool isOkTypeName(const string &s);
 		bool isSpacedOperator(const string &s);
 		bool isStartParen(const string &s);
-		bool isFunctionHeader (const string &s);
-		bool isFunctionHeader (const string &s, string &name);
-		bool isClassHeader (const string &s);
-		bool isClassKeyword (const string &s);
-		bool isPreprocessorDirective (const string &s);
+		bool isFunctionHeader(const string &s);
+		bool isFunctionHeader(const string &s, string &name);
+		bool isClassHeader(const string &s);
+		bool isClassKeyword(const string &s);
+		bool isPreprocessorDirective(const string &s);
 		bool stringStartsWith(const string &s, const string &t);
 		bool stringEndsWith(const string &s, const string &t);
 
@@ -387,7 +387,7 @@ bool StyleScanner::isCommentLine(int line) {
 }
 
 // Is the line a comment before a case or default label?
-bool StyleScanner::isCommentBeforeCase (int line) {
+bool StyleScanner::isCommentBeforeCase(int line) {
 	assert(0 <= line && line < getSize(fileLines));
 	if (isCommentLine(line)) {
 		for (int cLine = line + 1; cLine < getSize(fileLines); cLine++) {
@@ -731,7 +731,7 @@ void StyleScanner::checkTooFewComments() {
 }
 
 // Check that next N lines all in same scope
-bool StyleScanner::isSameScope (int startLine, int numLines) {
+bool StyleScanner::isSameScope(int startLine, int numLines) {
 	if (startLine >= 0
 		&& startLine + numLines < getSize(fileLines))
 	{
@@ -1121,14 +1121,14 @@ void StyleScanner::checkFunctionLeadComments() {
 }
 
 // Is the given line a function header?
-bool StyleScanner::isFunctionHeader (const string &s) {
+bool StyleScanner::isFunctionHeader(const string &s) {
 	string dummyName;
 	return isFunctionHeader(s, dummyName);
 }
 
 // Is the given line a function header?
 //   If so, return function name in parameter.
-bool StyleScanner::isFunctionHeader (const string &s, string &name) {
+bool StyleScanner::isFunctionHeader(const string &s, string &name) {
 	int pos = 0;
 	string type = getNextToken(s, pos);
 	if (isBasicType(type) && !isLineEndingSemicolon(s))
@@ -1196,7 +1196,7 @@ bool StyleScanner::isClassKeyword(const string &s) {
 }
 
 // Is this a preprocessor directive?
-bool StyleScanner::isPreprocessorDirective (const string &s) {
+bool StyleScanner::isPreprocessorDirective(const string &s) {
 	return getFirstToken(s) == "#";
 }
 
