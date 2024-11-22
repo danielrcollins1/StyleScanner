@@ -81,13 +81,13 @@ class StyleScanner {
 		bool isOkConstant(const string &s);
 		bool isOkVariable(const string &s);
 		bool isOkFunction(const string &s);
-		bool isOkStructure(const string &s);
-		bool isOkClass(const string &s);
+		bool isOkTypeName(const string &s);
 		bool isSpacedOperator(const string &s);
 		bool isStartParen(const string &s);
 		bool isFunctionHeader (const string &s);
 		bool isFunctionHeader (const string &s, string &name);
 		bool isClassHeader (const string &s);
+		bool isClassKeyword (const string &s);
 		bool isPreprocessorDirective (const string &s);
 		bool stringStartsWith(const string &s, const string &t);
 		bool stringEndsWith(const string &s, const string &t);
@@ -108,7 +108,6 @@ class StyleScanner {
 		void checkVariableNames();
 		void checkConstantNames();
 		void checkFunctionNames();
-		void checkStructureNames();
 		void checkClassNames();
 		void checkPunctuationSpacing();
 		void checkSpacedOperators();
@@ -230,7 +229,6 @@ void StyleScanner::checkReadabilityErrors() {
 	checkVariableNames();
 	checkConstantNames();
 	checkFunctionNames();
-	checkStructureNames();
 	checkClassNames();
 	checkExtraneousBlanks();
 	checkPunctuationSpacing();
@@ -1151,8 +1149,8 @@ bool StyleScanner::isFunctionHeader (const string &s, string &name) {
 	return false;
 }
 
-// Is this string an acceptable structure name?
-bool StyleScanner::isOkStructure(const string &s) {
+// Is this string an acceptable new type name?
+bool StyleScanner::isOkTypeName(const string &s) {
 	if (getLength(s) < 2
 		|| !isupper(s[0]))
 	{
@@ -1168,31 +1166,6 @@ bool StyleScanner::isOkStructure(const string &s) {
 	return true;
 }
 
-// Check structure names
-void StyleScanner::checkStructureNames() {
-	vector<int> errorLines;
-	for (int i = 0; i < getSize(fileLines); i++) {
-		if (!isCommentLine(i)) {
-			int pos = 0;
-			string line = fileLines[i];
-			string prefix = getNextToken(line, pos);
-			if (prefix == "struct") {
-				string name = getNextToken(line, pos);
-				if (!isOkStructure(name)) {
-					errorLines.push_back(i);
-				}
-			}
-		}
-	}
-	printErrors("Structures should start caps camel-case", errorLines);
-}
-
-// Is this string an acceptable class name?
-//   Currently same rule as for variable names.
-bool StyleScanner::isOkClass(const string &s) {
-	return isOkStructure(s);
-}
-
 // Check class names
 void StyleScanner::checkClassNames() {
 	vector<int> errorLines;
@@ -1201,20 +1174,25 @@ void StyleScanner::checkClassNames() {
 			int pos = 0;
 			string line = fileLines[i];
 			string prefix = getNextToken(line, pos);
-			if (prefix == "class") {
+			if (isClassKeyword(prefix)) {
 				string name = getNextToken(line, pos);
-				if (!isOkClass(name)) {
+				if (!isOkTypeName(name)) {
 					errorLines.push_back(i);
 				}
 			}
 		}
 	}
-	printErrors("Classes should start caps camel-case", errorLines);
+	printErrors("Class/structs should start caps camel-case", errorLines);
 }
 
-// Is this a class header line?
-bool StyleScanner::isClassHeader (const string &s) {
-	return getFirstToken(s) == "class";
+// Is this a class/struct header line?
+bool StyleScanner::isClassHeader(const string &s) {
+	return isClassKeyword(getFirstToken(s));
+}
+
+// Is this the keyword for a class/struct?
+bool StyleScanner::isClassKeyword(const string &s) {
+	return s == "class" || s == "struct";
 }
 
 // Is this a preprocessor directive?
@@ -1289,7 +1267,7 @@ void StyleScanner::checkFunctionLength() {
 
 // Get the relevant function length limit
 int StyleScanner::getFunctionLengthLimit(bool inClassHeader) {
-	const int MAX_INLINE = 3;
+	const int MAX_INLINE = 1;
 	const int LONG_FUNC = 25;
 	return inClassHeader ? MAX_INLINE : LONG_FUNC;
 }
