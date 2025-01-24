@@ -2,7 +2,8 @@
 *.o
 *.exe
 *.bat
-StyleScanner.dev
-Makefile.win
+*.dev
+*.layout
+*.win
 xArchive
 Testing
