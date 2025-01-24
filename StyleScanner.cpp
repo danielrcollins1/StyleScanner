@@ -62,7 +62,7 @@ class StyleScanner {
 		bool isCommentBeforeCase(int line);
 		bool isPunctuation(char c);
 		bool isPunctuationChaser(char c);
-		bool isMidBlockComment(int line);
+		bool isContinuedBlockComment(int line);
 		bool isLineLabel(const string &line);
 		bool isLineStartOpenBrace(const string &line);
 		bool isLineStartCloseBrace(const string &line);
@@ -130,8 +130,10 @@ class StyleScanner {
 		string fileName;
 		bool anyErrors = false;
 		bool exitAfterArgs = false;
+		bool doHeaderFormatCheck = true;
 		bool doFunctionCommentCheck = true;
 		bool doFunctionLengthCheck = true;
+		bool useCarranoStyle = false;
 		vector<string> fileLines;
 		vector<string> newTypes;
 		vector<int> commentLines;
@@ -165,6 +167,8 @@ void StyleScanner::printBanner() {
 void StyleScanner::printUsage() {
 	cout << "Usage: StyleScanner file [options]\n";
 	cout << "  where options include:\n";
+	cout << "\t-c use Carrano textbook styling\n";
+	cout << "\t-h suppress header format check\n";
 	cout << "\t-fc suppress function comment check\n";
 	cout << "\t-fl suppress function length check\n";
 	cout << endl;
@@ -176,6 +180,8 @@ void StyleScanner::parseArgs(int argc, char** argv) {
 		char *arg = argv[count];
 		if (arg[0] == '-') {
 			switch (arg[1]) {
+				case 'c': useCarranoStyle = true; break;
+				case 'h': doHeaderFormatCheck = false; break;
 				case 'f': parseFunctionArg(arg); break;
 				default: exitAfterArgs = true;
 			}
@@ -379,7 +385,9 @@ void StyleScanner::scanCommentLines() {
 		}
 
 		// Check C++-style comment
-		if (stringStartsWith(firstToken, DOUBLE_SLASH)) {
+		if (commentLines[i] != C_COMMENT
+			&& stringStartsWith(firstToken, DOUBLE_SLASH)) 
+		{
 			commentLines[i] = CPP_COMMENT;
 		}
 	}
@@ -572,26 +580,28 @@ void StyleScanner::checkHeaderStart() {
 
 // Check file header
 void StyleScanner::checkHeaderFormat() {
-	vector<int> errorLines;
-	const string HEADER[] = {C_COMMENT_START, "Name:", "Copyright:",
-		"Author:", "Date:", "Description:"};
-	int currLine = getFirstCommentLine();
-	if (currLine >= 0) {
-		for (string headPrefix: HEADER) {
-			if (currLine >= getSize(fileLines)) {
-				errorLines.push_back(currLine);
-			}
-			else {
-				string thisLine = fileLines[currLine];
-				unsigned int startIdx = getFirstNonspacePos(thisLine);
-				if (thisLine.find(headPrefix, startIdx) != startIdx) {
+	if (doHeaderFormatCheck) {
+		vector<int> errorLines;
+		const string HEADER[] = {C_COMMENT_START, "Name:", "Copyright:",
+			"Author:", "Date:", "Description:"};
+		int currLine = getFirstCommentLine();
+		if (currLine >= 0) {
+			for (string headPrefix: HEADER) {
+				if (currLine >= getSize(fileLines)) {
 					errorLines.push_back(currLine);
 				}
+				else {
+					string thisLine = fileLines[currLine];
+					unsigned int startIdx = getFirstNonspacePos(thisLine);
+					if (thisLine.find(headPrefix, startIdx) != startIdx) {
+						errorLines.push_back(currLine);
+					}
+				}
+				currLine++;
 			}
-			currLine++;
 		}
+		printErrors("Lacks Dev-C++ style comment header!", errorLines);
 	}
-	printErrors("Invalid comment header!", errorLines);
 }
 
 // Check line lengths
@@ -619,9 +629,10 @@ bool StyleScanner::isIndentTabs(int line) {
 	string lineStr = fileLines[line];	
 	int checkToPos = getFirstNonspacePos(lineStr);
 
-	// Artistic Style uses spaces for continuation lines;
-	// so in these cases, check no further than scope level
-	if (mayBeRunOnLine(line)) {
+	// Limit check to scope level only
+	//   Artistic style uses spaces for continuation lines
+	//   Carrano uses space padding in some comments 	
+	if (mayBeRunOnLine(line) || isContinuedBlockComment(line)) {
 		checkToPos = min(checkToPos, scopeLevels[line]);
 	}
 	
@@ -636,6 +647,7 @@ bool StyleScanner::isIndentTabs(int line) {
 
 // Check endline comments
 void StyleScanner::checkEndlineComments() {
+	if (useCarranoStyle) return;
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
 		if (!commentLines[i]
@@ -659,12 +671,10 @@ void StyleScanner::checkTabUsage() {
 	printErrors("Tabs should be used for indents", errorLines);
 }
 
-// Is this line in the middle of a C-style block comment?
-bool StyleScanner::isMidBlockComment(int line){
+// Is this line a continuing C-style block comment?
+bool StyleScanner::isContinuedBlockComment(int line){
 	return commentLines[line] == C_COMMENT
-		&& (line > 0 && commentLines[line - 1] == C_COMMENT)
-		&& (line < getSize(commentLines) - 1 
-			&& commentLines[line + 1] == C_COMMENT);
+		&& (line > 0 && commentLines[line - 1] == C_COMMENT);
 }
 
 // Is this line possibly a run-on (continuation) statement?
@@ -685,7 +695,7 @@ bool StyleScanner::mayBeRunOnLine(int line) {
 bool StyleScanner::isOkayIndentLevel(int line) {
 
 	// Ignore some cases
-	if (isBlank(line) || isMidBlockComment(line) || !isIndentTabs(line)) {
+	if (isBlank(line) || !isIndentTabs(line)) {
 		return true;
 	}
 
@@ -699,12 +709,13 @@ bool StyleScanner::isOkayIndentLevel(int line) {
 			|| numStartTabs == scopeLevel - 1;
 	}
 
-	// Run-on (continuation) lines handling:
-	//   Artistic Style uses spaces, so require at least scope tabs
-	if (mayBeRunOnLine(line)) {
+	// Extra spaces after indent level
+	//   Artistic Style uses spaces for run-on lines
+	//   Carrano uses extra spaces in some comments
+	if (mayBeRunOnLine(line) || isContinuedBlockComment(line)) {
 		return numStartTabs >= scopeLevel;
 	}
-
+	
 	// Standard indent case
 	return numStartTabs == scopeLevel;
 }
@@ -722,6 +733,7 @@ void StyleScanner::checkIndentLevels() {
 
 // Check blanks before comments (required)
 void StyleScanner::checkBlanksBeforeComments() {
+	if (useCarranoStyle) return;
 	vector<int> errorLines;
 	for (int i = 1; i < getSize(fileLines); i++) {
 		if (commentLines[i]
@@ -736,6 +748,7 @@ void StyleScanner::checkBlanksBeforeComments() {
 
 // Check for no comments in long stretch of statements
 void StyleScanner::checkTooFewComments() {
+	if (useCarranoStyle) return;
 	const int LONG_STRETCH = 25;
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines); i++) {
@@ -770,6 +783,7 @@ bool StyleScanner::isSameScope(int startLine, int numLines) {
 
 // Check for commenting multiple single-line statements
 void StyleScanner::checkTooManyComments() {
+	if (useCarranoStyle) return;
 	vector<int> errorLines;
 	for (int i = 0; i < getSize(fileLines) - 5; i++) {
 		if (commentLines[i]
@@ -788,14 +802,15 @@ void StyleScanner::checkTooManyComments() {
 
 // Is this character an operator that expects spacing?
 //    Note we must skip many symbols used for other purposes, e.g.:
-//   '<', '>' used for brackets in #includes, templates
+//   "<", ">" used for brackets in #includes, templates
+//   ">>" used at end of nested templates
 //   "++", "--" pre/postfix to variable
 //   "+" used in name of overloaded operator+
 //   "-" used for unary negation (start number)
 //   "*" used for pointer operator
 //   "/" used in units (e.g., ft/sec)
 bool StyleScanner::isSpacedOperator(const string &s) {
-	const string SPACE_OPS[] = {"%", "<<", ">>", "<=", ">=",
+	const string SPACE_OPS[] = {"%", "<<", "<=", ">=",
 		"==", "!=", "&&", "||", "=", "+=", "-=", "*=", "/="};
 	for (string op: SPACE_OPS) {
 		if (s == op) {
@@ -1075,7 +1090,7 @@ void StyleScanner::checkVariableNames() {
 
 				// Get the variable name
 				string name = getNextToken(line, pos);
-				while (name == "*") {
+				while (name == "*" || name == "&") {
 					name = getNextToken(line, pos);
 				}
 
@@ -1141,6 +1156,7 @@ bool StyleScanner::isLeadInCommentHere(int line) {
 
 // Check for lead-in comments before functions
 void StyleScanner::checkFunctionLeadComments() {
+	if (useCarranoStyle) return;
 	if (doFunctionCommentCheck) {
 		vector<int> errorLines;
 		for (int i = 0; i < getSize(fileLines); i++) {
@@ -1240,6 +1256,7 @@ bool StyleScanner::isPreprocessorDirective(const string &s) {
 //    Blank lines should only occur:
 //    before comment, label, function, class, or preprocessor directive
 void StyleScanner::checkExtraneousBlanks() {
+	if (useCarranoStyle) return;
 	vector<int> errorLines;
 	for (int i = 0; i < (int) getSize(fileLines) - 2; i++) {
 		if (isBlank(i)) {

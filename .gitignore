@@ -1,6 +1,8 @@
 *#
+*.o
 *.exe
+*.bat
+StyleScanner.dev
+Makefile.win
 xArchive
 Testing
-StyleScanner.dev
-TestAll.bat
