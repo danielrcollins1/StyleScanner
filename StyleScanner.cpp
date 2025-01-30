@@ -861,7 +861,7 @@ void StyleScanner::checkEndlineRunonComments() {
 			errorLines.push_back(i);
 		}
 	}
-	printErrors("Endline run-on comments are super gross", errorLines);
+	printErrors("Endline run-on C-style comments are cursed", errorLines);
 }
 
 // Is this a punctuation character?
@@ -1199,14 +1199,14 @@ bool StyleScanner::isFunctionHeader(const string &s, string &name) {
 	if (isAnyType(type) && !isLineEndingSemicolon(s)) {
 		name = getNextToken(s, pos);
 
-		// Check for constructor (no return)
+		// Check for inline constructor (type is name)
 		if (isStartParen(name)) {
 			name = type;
 			return true;			
 		}
 
 		// Handle after return value
-		while (name == "*") {
+		while (name == "*" || name == "&") {
 			name = getNextToken(s, pos);
 		}
 		string nextSymbol = getNextToken(s, pos);
@@ -1214,7 +1214,7 @@ bool StyleScanner::isFunctionHeader(const string &s, string &name) {
 			name = getNextToken(s, pos);
 			nextSymbol = getNextToken(s, pos);
 		}
-		if (isStartParen(nextSymbol)) {
+		if (name == "operator" || isStartParen(nextSymbol)) {
 			return true;
 		}
 	}
@@ -1352,7 +1352,7 @@ void StyleScanner::checkInlineLength() {
 			}
 		}
 	}
-	printErrors("Inline functions can't be over one line", errorLines);
+	printErrors("Inline functions are limited to one line", errorLines);
 }
 
 // Count function length from header line
