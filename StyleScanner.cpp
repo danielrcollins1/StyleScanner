@@ -49,7 +49,6 @@ class StyleScanner {
 		int getFirstNonspacePos(const string &line);
 		int getLastNonspacePos(const string &line);
 		int getStartTabCount(const string &line);
-		int getFunctionLengthLimit(bool inClassHeader);
 		int countFunctionLength(int startLine);
 		
 		// Boolean helper functions
@@ -102,6 +101,7 @@ class StyleScanner {
 		void checkHeaderStart();
 		void checkHeaderFormat();
 		void checkFunctionLength();
+		void checkInlineLength();
 
 		// Readability items
 		void checkReadabilityErrors();
@@ -230,6 +230,7 @@ void StyleScanner::checkCriticalErrors() {
 	checkHeaderStart();
 	checkHeaderFormat();
 	checkFunctionLength();
+	checkInlineLength();
 }
 
 // Check for readability errors
@@ -658,7 +659,7 @@ void StyleScanner::checkEndlineComments() {
 			errorLines.push_back(i);
 		}
 	}
-	printErrors("Endline comments should not be used", errorLines);
+	printErrors("Endline comments shouldn't be used", errorLines);
 }
 
 // Check tab usage for indents
@@ -860,7 +861,7 @@ void StyleScanner::checkEndlineRunonComments() {
 			errorLines.push_back(i);
 		}
 	}
-	printErrors("Endline run-on comments are very bad", errorLines);
+	printErrors("Endline run-on comments are super gross", errorLines);
 }
 
 // Is this a punctuation character?
@@ -1314,20 +1315,12 @@ void StyleScanner::checkStartSpaceComments() {
 // Check for overly long functions.
 void StyleScanner::checkFunctionLength() {
 	if (doFunctionLengthCheck) {
+		const int LONG_FUNC = 25;
 		vector<int> errorLines;
-		bool inClassHeader = false;
 		for (int i = 0; i < getSize(fileLines); i++) {
-			if (scopeLevels[i] == 0) {
-				inClassHeader = false;
-			}
 			if (!commentLines[i]) {
-				if (isClassHeader(fileLines[i])) {
-					inClassHeader = true;
-				}
 				if (isFunctionHeader(fileLines[i])) {
-					if (countFunctionLength(i) >
-						getFunctionLengthLimit(inClassHeader)) 
-					{
+					if (countFunctionLength(i) > LONG_FUNC) {
 						errorLines.push_back(i);
 					}
 				}
@@ -1337,11 +1330,29 @@ void StyleScanner::checkFunctionLength() {
 	}
 }
 
-// Get the relevant function length limit
-int StyleScanner::getFunctionLengthLimit(bool inClassHeader) {
+// Check for long inline functions.
+void StyleScanner::checkInlineLength() {
 	const int MAX_INLINE = 1;
-	const int LONG_FUNC = 25;
-	return inClassHeader ? MAX_INLINE : LONG_FUNC;
+	vector<int> errorLines;
+	bool inClassHeader = false;
+	for (int i = 0; i < getSize(fileLines); i++) {
+		if (scopeLevels[i] == 0) {
+			inClassHeader = false;
+		}
+		if (!commentLines[i]) {
+			if (isClassHeader(fileLines[i])) {
+				inClassHeader = true;
+			}
+			if (inClassHeader
+				&& isFunctionHeader(fileLines[i])) 
+			{
+				if (countFunctionLength(i) > MAX_INLINE) {
+					errorLines.push_back(i);
+				}
+			}
+		}
+	}
+	printErrors("Inline functions can't be over one line", errorLines);
 }
 
 // Count function length from header line
