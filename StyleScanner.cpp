@@ -91,6 +91,7 @@ class StyleScanner {
 		bool isFunctionHeader(const string &s, string &name);
 		bool isClassHeader(const string &s);
 		bool isClassKeyword(const string &s);
+		bool isNextVariableNameOk(const string& s, int pos);
 		bool isPreprocessorDirective(const string &s);
 		bool stringStartsWith(const string &s, const string &t);
 		bool stringEndsWith(const string &s, const string &t);
@@ -1036,7 +1037,7 @@ void StyleScanner::checkConstantNames() {
 			string prefix = getNextToken(line, pos);
 			if (prefix == "const") {
 				string type = getNextToken(line, pos);
-				if (isBasicType(type)) {
+				if (isAnyType(type)) {
 					string name = getNextToken(line, pos);
 					if (!isOkConstant(name)) {
 						errorLines.push_back(i);
@@ -1073,8 +1074,9 @@ bool StyleScanner::isStartParen(const string &s) {
 // Does this symbol after an identifier indicate a function?
 bool StyleScanner::isFunctionSymbol(const string& symbol) {
 	return isStartParen(symbol)
+		|| symbol == "<"
 		|| symbol == "::"
-		|| symbol == "<";
+		|| symbol == "::~";
 }
 
 // Check variable names
@@ -1086,25 +1088,35 @@ void StyleScanner::checkVariableNames() {
 			int pos = 0;
 			string line = fileLines[i];
 			string type = getNextToken(line, pos);
-			if (isBasicType(type)) {
-
-				// Get the variable name
-				string name = getNextToken(line, pos);
-				while (name == "*" || name == "&") {
-					name = getNextToken(line, pos);
-				}
-
-				// Check only non-function names
-				string nextSymbol = getNextToken(line, pos);
-				if (!isFunctionSymbol(nextSymbol)) {
-					if (!isOkVariable(name)) {
-						errorLines.push_back(i);
-					}
+			if (isAnyType(type)) {
+				if (!isNextVariableNameOk(line, pos)) {
+					errorLines.push_back(i);
 				}
 			}
 		}
 	}
 	printErrors("Variables need full camelCase name", errorLines);
+}
+
+// Check the next variable name on this line
+// On entry, we've discovered a type starting a line
+// Returns true if okay, false if malformed variable name
+bool StyleScanner::isNextVariableNameOk(const string& s, int pos) {
+	string next = getNextToken(s, pos);
+
+	// Skip de/constructors (type is name)
+	if (isFunctionSymbol(next)) {
+		return true;
+	}
+
+	// Get to variable name, eat pointer symbols
+	while (next == "*" || next == "&") {
+		next = getNextToken(s, pos);
+	}
+
+	// Check non-function names
+	string afterSymbol = getNextToken(s, pos);
+	return isFunctionSymbol(afterSymbol) || isOkVariable(next);
 }
 
 // Is this string an acceptable function name?
@@ -1120,7 +1132,7 @@ void StyleScanner::checkFunctionNames() {
 		if (!isCommentLine(i)) {
 			string name;
 			if (isFunctionHeader(fileLines[i], name)) {
-				if (!isOkFunction(name)) {
+				if (!isNewType(name) && !isOkFunction(name)) {
 					errorLines.push_back(i);
 				}
 			}
@@ -1183,9 +1195,16 @@ bool StyleScanner::isFunctionHeader(const string &s) {
 bool StyleScanner::isFunctionHeader(const string &s, string &name) {
 	int pos = 0;
 	string type = getNextToken(s, pos);
-	if (isBasicType(type) && !isLineEndingSemicolon(s))
-	{
+	if (isAnyType(type) && !isLineEndingSemicolon(s)) {
 		name = getNextToken(s, pos);
+
+		// Check for constructor (no return)
+		if (isStartParen(name)) {
+			name = type;
+			return true;			
+		}
+
+		// Handle after return value
 		while (name == "*") {
 			name = getNextToken(s, pos);
 		}
