@@ -1,10 +1,9 @@
 /*
 	Name: StyleScanner
-	Copyright: 2021-2024
+	Copyright: 2021-2025
 	Author: Daniel R. Collins
 	Date: 04/08/21 00:05
-	Description: 
-		Scans approved style for student C++ assignment submissions.
+	Description: Scans student C++ files for approved style.
 		Broadly aligned with Gaddis C++ textbook styling.
 		Also expect Dev-C++ style comment header.
 */
@@ -100,6 +99,7 @@ class StyleScanner {
 		void checkAnyComments();
 		void checkHeaderStart();
 		void checkHeaderFormat();
+		void checkHeaderBlankFields();
 		void checkFunctionLength();
 		void checkInlineLength();
 
@@ -156,6 +156,11 @@ const char C_COMMENT_START[] = {'/', '*', '\0'};
 const char C_COMMENT_END[] = {'*', '/', '\0'};
 const char DOUBLE_SLASH[] = {'/', '/', '\0'};
 const char START_BLOCK[] = {LEFT_BRACE};
+
+// Dev-C++ comment header labels
+const string HEADER_LABELS[] = {
+	"Name", "Copyright", "Author", "Date", "Description"
+};
 
 // Print program banner
 void StyleScanner::printBanner() {
@@ -229,6 +234,7 @@ void StyleScanner::checkCriticalErrors() {
 	checkAnyComments();
 	checkHeaderStart();
 	checkHeaderFormat();
+	checkHeaderBlankFields();
 	checkFunctionLength();
 	checkInlineLength();
 }
@@ -584,25 +590,47 @@ void StyleScanner::checkHeaderStart() {
 void StyleScanner::checkHeaderFormat() {
 	if (doHeaderFormatCheck) {
 		vector<int> errorLines;
-		const string HEADER[] = {C_COMMENT_START, "Name:", "Copyright:",
-			"Author:", "Date:", "Description:"};
 		int currLine = getFirstCommentLine();
 		if (currLine >= 0) {
-			for (string headPrefix: HEADER) {
-				if (currLine >= getSize(fileLines)) {
+			if (fileLines[currLine] != C_COMMENT_START) {
+				errorLines.push_back(currLine);
+			}
+			for (string headLabel: HEADER_LABELS) {
+				if (++currLine >= getSize(fileLines)) {
 					errorLines.push_back(currLine);
 				}
 				else {
 					string thisLine = fileLines[currLine];
-					unsigned int startIdx = getFirstNonspacePos(thisLine);
-					if (thisLine.find(headPrefix, startIdx) != startIdx) {
+					string headPrefix = "\t" + headLabel + ": ";
+					if (thisLine.find(headPrefix, 0) != 0) {
 						errorLines.push_back(currLine);
 					}
 				}
-				currLine++;
 			}
 		}
 		printErrors("Lacks Dev-C++ style comment header!", errorLines);
+	}
+}
+
+// Check for blank fields in comment header
+void StyleScanner::checkHeaderBlankFields() {
+	if (doHeaderFormatCheck) {
+		vector<int> errorLines;
+		int currLine = getFirstCommentLine();
+		if (currLine >= 0) {
+			for (string headLabel: HEADER_LABELS) {
+				if (++currLine < getSize(fileLines)) {
+					string thisLine = fileLines[currLine];
+					unsigned int colonPos = thisLine.find(":", 0);
+					if (colonPos != string::npos 
+						&& thisLine.size() < colonPos + 3)
+					{
+						errorLines.push_back(currLine);						
+					}
+				}
+			}
+		}
+		printErrors("Comment header field empty", errorLines);
 	}
 }
 
