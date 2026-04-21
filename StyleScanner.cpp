@@ -45,6 +45,7 @@ class StyleScanner {
 		void printError(const string &error);
 		void printErrors(const string &error, const vector<int> &lines);
 		int getFirstCommentLine();
+		int getFirstNonCommentLine();
 		int getFirstNonspacePos(const string &line);
 		int getLastNonspacePos(const string &line);
 		int getStartTabCount(const string &line);
@@ -571,6 +572,17 @@ int StyleScanner::getFirstCommentLine() {
 	return -1;
 }
 
+// Get index of first non-comment line
+//   Returns -1 if none whatsoever
+int StyleScanner::getFirstNonCommentLine() {
+	for (int i = 0; i < getSize(fileLines); i++) {
+		if (!commentLines[i]) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 // Check if the file has any comment lines at all
 void StyleScanner::checkAnyComments() {
 	if (getFirstCommentLine() == -1) {
@@ -778,19 +790,20 @@ void StyleScanner::checkBlanksBeforeComments() {
 
 // Check for no comments in long stretch of statements
 void StyleScanner::checkTooFewComments() {
-	if (useCarranoStyle) return;
 	const int LONG_STRETCH = 25;
+	if (useCarranoStyle) return;
+	if (getFirstNonCommentLine() == -1) return;
 	vector<int> errorLines;
-	for (int i = 0; i < getSize(fileLines); i++) {
-		if (commentLines[i]) {
-			int end = i + 1;
-			while (end < getSize(fileLines) && !commentLines[end++]);
-			int span = end - i - 2;
-			if (span > LONG_STRETCH) {
-				errorLines.push_back(i + LONG_STRETCH / 2);
-			}
-			i = end;
+	int fileLength = getSize(fileLines);
+	int line = getFirstNonCommentLine();
+	while (line < fileLength) {
+		int spanStart = line;
+		while (!commentLines[++line] && line < fileLength);
+		int spanLength = line - spanStart;
+		if (spanLength > LONG_STRETCH) {
+			errorLines.push_back(spanStart + LONG_STRETCH / 2);
 		}
+		while (commentLines[++line] && line < fileLength);
 	}
 	printErrors("Too few comments", errorLines);
 }
