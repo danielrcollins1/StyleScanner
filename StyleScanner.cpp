@@ -825,6 +825,8 @@ bool StyleScanner::isSameScope(int startLine, int numLines) {
 }
 
 // Check for commenting multiple single-line statements
+//   Note: Multi-line comments will foil this check;
+//     but, hard to guard against that.
 void StyleScanner::checkTooManyComments() {
 	if (useCarranoStyle) return;
 	vector<int> errorLines;
